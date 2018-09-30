@@ -54,6 +54,6 @@ const (
 type Token struct {
 	tokeyType TokenType
 	lexeme    string
-	literal   string
+	literal   interface{}
 	line      int
 }
