@@ -1,8 +1,15 @@
 package lexer
 
 import (
+	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
+	"sync"
+	"unicode"
+
+	"github.com/pkg/errors"
 )
 
 type Lexer struct {
@@ -15,97 +22,134 @@ type Lexer struct {
 	eventsQueue EventDrivenModule
 }
 
-func Start(filename string) {
-	l := Lexer{}
-	l.eventsQueue = EventDrivenModule{Events: []Event{Event{l.readFile, filename}}}
-	l.eventsQueue.AddEvent(Event{l.firstLine, nil})
-	for !l.eventsQueue.IsEmpty() {
-		l.executeHandler()
+type CategorizedChar struct {
+	Char byte
+	Type string
+}
+
+func MergeErrors(cs ...<-chan error) <-chan error {
+	var wg sync.WaitGroup
+	out := make(chan error, len(cs))
+
+	output := func(c <-chan error) {
+		for n := range c {
+			out <- n
+		}
+		wg.Done()
+	}
+	wg.Add(len(cs))
+	for _, c := range cs {
+		go output(c)
 	}
 
-	// for !eventsQueue.IsEmpty() {
-	// 	firstEvent := eventsQueue.PopEvent()
-	// 	firstEvent.Handler()
-	// }
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
 }
 
-func (l *Lexer) executeHandler() {
-	firstEvent := l.eventsQueue.PopEvent()
-	firstEvent.Handler(firstEvent.Args)
+func WaitForPipeline(errs ...<-chan error) error {
+	errc := MergeErrors(errs...)
+	for err := range errc {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (l *Lexer) readFile(arg interface{}) {
-	filename := arg.(string)
-	dat, err := ioutil.ReadFile(filename)
+func lineListSource(ctx context.Context, program string) (
+	<-chan string, <-chan error, error) {
+	lines := strings.Split(program, "\n")
+	if len(lines) == 0 {
+		return nil, nil, errors.Errorf("no lines provided")
+	}
+	out := make(chan string)
+	errc := make(chan error, 1)
+	go func() {
+		defer close(out)
+		defer close(errc)
+		for lineIndex, line := range lines {
+			if line == "" {
+				errc <- errors.Errorf("line %v is empty", lineIndex+1)
+				return
+			}
+			select {
+			case out <- line:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return out, errc, nil
+}
+
+func charListSource(ctx context.Context, in <-chan string) (<-chan CategorizedChar, <-chan error, error) {
+	errc := make(chan error, 1)
+	out := make(chan CategorizedChar, 1)
+	go func() {
+		defer close(errc)
+		defer close(out)
+		for n := range in {
+			for i := 0; i < len(n); i++ {
+				select {
+				case out <- categorizeChar(n[i]):
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+	}()
+
+	return out, errc, nil
+}
+
+func categorizeChar(in byte) CategorizedChar {
+	categorizedChar := CategorizedChar{Char: in}
+	switch char := rune(in); {
+	case unicode.IsLetter(char):
+		categorizedChar.Type = "Letter"
+	case unicode.IsDigit(char):
+		categorizedChar.Type = "Digit"
+	case char == ' ':
+		categorizedChar.Type = "Delimiter"
+	case char == ':' || char == '=' || char == '+' || char == ';':
+		categorizedChar.Type = "Special"
+	}
+
+	return categorizedChar
+}
+
+func RunLexer(filename string) error {
+	program := readFile(filename)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	var errcList []<-chan error
+	linec, errc, err := lineListSource(ctx, program)
+	if err != nil {
+		return err
+	}
+	errcList = append(errcList, errc)
+
+	charc, errc, err := charListSource(ctx, linec)
+	if err != nil {
+		return err
+	}
+	errcList = append(errcList, errc)
+
+	for c := range charc {
+		fmt.Println(string(c.Type))
+	}
+	return WaitForPipeline(errcList...)
+
+}
+
+func readFile(filename string) string {
+	program, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
-	l.Source = string(dat)
+	return string(program)
 }
-
-func (l *Lexer) firstLine(arg interface{}) {
-	l.line = 0
-	l.eventsQueue.AddEvent(Event{l.readLine, nil})
-}
-
-func (l *Lexer) readLine(arg interface{}) {
-	line := "TODO"
-	for _, c := range line {
-		print(c)
-	}
-	l.line++
-	l.eventsQueue.AddEvent(Event{l.readLine, nil})
-}
-
-func (l Lexer) filtroAsc(arg interface{}) {
-
-}
-
-// func
-
-// func (l Lexer) ScanTokens() []Token {
-// 	e := EventDrivenModule{Events: []Event{Event{l.scanToken}}}
-// 	f := e.PopEvent()
-// 	fmt.Printf("%v", f)
-
-// 	for !l.isAtEnd() {
-// 		l.Start = l.Current
-// 		l.scanToken()
-// 	}
-
-// 	return nil
-// }
-
-// func readFile(fileName string) interface{} {
-// 	dat, err := ioutil.ReadFile(fileName)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
-// 	return string(dat)
-// }
-
-// func (l Lexer) readLine() interface{} {
-// 	return nil
-// }
-
-// func nextLine() {
-
-// }
-
-// func (l Lexer) isAtEnd() bool {
-// 	return l.Current >= len(l.Source)
-// }
-
-// func (l *Lexer) scanToken() {
-// 	fmt.Print("oi")
-// 	c := l.advance()
-// 	switch c {
-// 	case "(":
-// 		fmt.Print("(\n")
-// 	}
-// }
-
-// func (l *Lexer) advance() string {
-// 	l.Current++
-// 	return string(l.Source[l.Current-1])
-// }

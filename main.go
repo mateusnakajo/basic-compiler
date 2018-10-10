@@ -13,7 +13,7 @@ func main() {
 	case len(args) > 1:
 		fmt.Println("Usage: basic [script]")
 	case len(args) == 1:
-		lexer.Start(args[0])
+		lexer.RunLexer(args[0])
 	case len(args) == 0:
 		fmt.Println(">>")
 	}
