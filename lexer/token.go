@@ -52,7 +52,7 @@ const (
 )
 
 type Token struct {
-	tokeyType TokenType
+	tokenType TokenType
 	lexeme    string
 	literal   interface{}
 	line      int
