@@ -49,6 +49,9 @@ const (
 	Identifier
 	String
 	Number
+
+	// control
+	EndOfLine
 )
 
 type Token struct {

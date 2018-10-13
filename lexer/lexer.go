@@ -100,6 +100,7 @@ func charListSource(ctx context.Context, in <-chan string) (<-chan CategorizedCh
 					return
 				}
 			}
+			out <- CategorizedChar{byte('\n'), "control"}
 		}
 	}()
 
@@ -113,34 +114,50 @@ func tokenListSource(ctx context.Context, in <-chan CategorizedChar) (<-chan Tok
 		defer close(errc)
 		defer close(out)
 		acc := ""
-		token := Token{}
 		for n := range in {
 			c := rune(n.Char)
-			if c == ' ' && acc == "" {
-				continue
-			}
-			token = convertCharToToken(c) //ex: (
-			if (Token{}) == token {
-				if c == ' ' {
-					//ex: DIM
-					token = convertStringToToken(acc)
-					emitToken(ctx, token, out)
-					acc = ""
-				} else {
-					acc += string(c)
-				}
-			} else if acc != "" {
-				//ex: F(i+1)
-				token1 := Token{tokenType: Identifier, lexeme: acc}
+			acc += string(c)
+			tokens := scanForTokens(ctx, acc)
+			if tokens == nil {
 				acc = ""
-				emitToken(ctx, token1, out)
-				emitToken(ctx, token, out)
+			}
+			if len(tokens) > 0 {
+				acc = ""
+				for _, token := range tokens {
+					emitToken(ctx, token, out)
+				}
 			}
 		}
 	}()
 	//10 DIM F(20)
 
 	return out, errc, nil
+}
+
+func scanForTokens(ctx context.Context, lexeme string) []Token {
+	tokens := []Token{}
+	// TODO: check for string
+	if lexeme == " " {
+		return nil
+	}
+	if len(lexeme) == 1 {
+		if token := convertCharToToken(rune(lexeme[0])); token != (Token{}) {
+			tokens = append(tokens, convertCharToToken(rune(lexeme[0])))
+		}
+	} else if rune(lexeme[len(lexeme)-1]) == '\n' {
+		lexeme = lexeme[0 : len(lexeme)-1]
+		tokens = append(tokens, convertStringToToken(lexeme))
+		tokens = append(tokens, Token{lexeme: "EOL", tokenType: EndOfLine})
+	} else if rune(lexeme[len(lexeme)-1]) == ' ' {
+		lexeme = lexeme[0 : len(lexeme)-1]
+		tokens = append(tokens, convertStringToToken(lexeme))
+	} else if token := convertCharToToken(rune(lexeme[len(lexeme)-1])); token != (Token{}) {
+		lexeme = lexeme[0 : len(lexeme)-1]
+		tokens = append(tokens, convertStringToToken(lexeme))
+		tokens = append(tokens, token)
+	}
+
+	return tokens
 }
 
 func convertCharToToken(lexeme rune) Token {
@@ -150,6 +167,20 @@ func convertCharToToken(lexeme rune) Token {
 		token = Token{tokenType: LeftParen, lexeme: string(lexeme)}
 	case ')':
 		token = Token{tokenType: RightParen, lexeme: string(lexeme)}
+	case '=':
+		token = Token{tokenType: Equal, lexeme: string(lexeme)}
+	case '\n':
+		token = Token{tokenType: EndOfLine, lexeme: "EOL"}
+	case ',':
+		token = Token{tokenType: Comma, lexeme: string(lexeme)}
+	case '-':
+		token = Token{tokenType: Minus, lexeme: string(lexeme)}
+	case '+':
+		token = Token{tokenType: Plus, lexeme: string(lexeme)}
+	case '>':
+		token = Token{tokenType: Greater, lexeme: string(lexeme)}
+	case '<':
+		token = Token{tokenType: Less, lexeme: string(lexeme)}
 	}
 	return token
 }
