@@ -3,8 +3,6 @@ package lexer
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -115,8 +113,7 @@ func tokenListSource(ctx context.Context, in <-chan CategorizedChar) (<-chan Tok
 		defer close(out)
 		acc := ""
 		for n := range in {
-			c := rune(n.Char)
-			acc += string(c)
+			acc += string(rune(n.Char))
 			tokens := scanForTokens(ctx, acc)
 			if tokens == nil {
 				acc = ""
@@ -129,7 +126,6 @@ func tokenListSource(ctx context.Context, in <-chan CategorizedChar) (<-chan Tok
 			}
 		}
 	}()
-	//10 DIM F(20)
 
 	return out, errc, nil
 }
@@ -140,24 +136,29 @@ func scanForTokens(ctx context.Context, lexeme string) []Token {
 	if lexeme == " " {
 		return nil
 	}
+
 	if len(lexeme) == 1 {
 		if token := convertCharToToken(rune(lexeme[0])); token != (Token{}) {
 			tokens = append(tokens, convertCharToToken(rune(lexeme[0])))
 		}
-	} else if rune(lexeme[len(lexeme)-1]) == '\n' {
-		lexeme = lexeme[0 : len(lexeme)-1]
-		tokens = append(tokens, convertStringToToken(lexeme))
-		tokens = append(tokens, Token{lexeme: "EOL", tokenType: EndOfLine})
-	} else if rune(lexeme[len(lexeme)-1]) == ' ' {
-		lexeme = lexeme[0 : len(lexeme)-1]
-		tokens = append(tokens, convertStringToToken(lexeme))
-	} else if token := convertCharToToken(rune(lexeme[len(lexeme)-1])); token != (Token{}) {
-		lexeme = lexeme[0 : len(lexeme)-1]
-		tokens = append(tokens, convertStringToToken(lexeme))
-		tokens = append(tokens, token)
+	} else {
+		butLast := lexeme[0 : len(lexeme)-1]
+		if lastChar(lexeme) == '\n' {
+			tokens = append(tokens, convertStringToToken(butLast))
+			tokens = append(tokens, Token{lexeme: "\n", tokenType: EndOfLine})
+		} else if lastChar(lexeme) == ' ' {
+			tokens = append(tokens, convertStringToToken(butLast))
+		} else if token := convertCharToToken(lastChar(lexeme)); token != (Token{}) {
+			tokens = append(tokens, convertStringToToken(butLast))
+			tokens = append(tokens, token)
+		}
 	}
 
 	return tokens
+}
+
+func lastChar(s string) rune {
+	return rune(s[len(s)-1])
 }
 
 func convertCharToToken(lexeme rune) Token {
@@ -170,7 +171,7 @@ func convertCharToToken(lexeme rune) Token {
 	case '=':
 		token = Token{tokenType: Equal, lexeme: string(lexeme)}
 	case '\n':
-		token = Token{tokenType: EndOfLine, lexeme: "EOL"}
+		token = Token{tokenType: EndOfLine, lexeme: string(lexeme)}
 	case ',':
 		token = Token{tokenType: Comma, lexeme: string(lexeme)}
 	case '-':
@@ -189,7 +190,10 @@ func convertStringToToken(lexeme string) Token {
 	if _, err := strconv.Atoi(lexeme); err == nil {
 		return Token{tokenType: Number, lexeme: lexeme}
 	} else if unicode.IsLetter(rune(lexeme[0])) {
-		return Token{tokenType: Identifier, lexeme: lexeme} //FIXME
+		if contains(Keywords, lexeme) {
+			return Token{tokenType: Keyword, lexeme: lexeme}
+		}
+		return Token{tokenType: Identifier, lexeme: lexeme}
 	}
 	return Token{}
 }
@@ -200,6 +204,15 @@ func emitToken(ctx context.Context, token Token, out chan<- Token) {
 	case <-ctx.Done():
 		return
 	}
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func categorizeChar(in byte) CategorizedChar {
@@ -218,36 +231,28 @@ func categorizeChar(in byte) CategorizedChar {
 	return categorizedChar
 }
 
-func RunLexer(filename string) error {
-	program := readFile(filename)
+func RunLexer(program string) ([]Token, error) {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
 	var errcList []<-chan error
 	linec, errc, err := lineListSource(ctx, program)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	errcList = append(errcList, errc)
 
 	charc, errc, err := charListSource(ctx, linec)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	errcList = append(errcList, errc)
 
 	tokenc, errc, err := tokenListSource(ctx, charc)
+	tokens := []Token{}
 	for t := range tokenc {
-		fmt.Println(t.lexeme)
+		tokens = append(tokens, t)
 	}
-	return WaitForPipeline(errcList...)
-
-}
-
-func readFile(filename string) string {
-	program, err := ioutil.ReadFile(filename)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return string(program)
+	fmt.Printf("%v", tokens)
+	return tokens, WaitForPipeline(errcList...)
 }
