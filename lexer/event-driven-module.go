@@ -31,14 +31,14 @@ type Event struct {
 	Arg  string
 }
 
-type AsciiCategorizer struct {
+type FileReader struct {
 	EventDrivenModule
 	filename string
 	file     os.File
 	scanner  *bufio.Scanner
 }
 
-func (a *AsciiCategorizer) HandleEvent(event Event) {
+func (a *FileReader) HandleEvent(event Event) {
 	handlers := map[string]func(string){
 		"open":  a.OpenHandler,
 		"read":  a.ReadHandler,
@@ -47,7 +47,7 @@ func (a *AsciiCategorizer) HandleEvent(event Event) {
 	handler(event.Arg)
 }
 
-func (a *AsciiCategorizer) OpenHandler(filename string) {
+func (a *FileReader) OpenHandler(filename string) {
 	f, err := os.Open(filename)
 	check(err)
 
@@ -55,18 +55,17 @@ func (a *AsciiCategorizer) OpenHandler(filename string) {
 	a.AddEvent(Event{"read", ""})
 }
 
-func (a *AsciiCategorizer) ReadHandler(arg string) {
+func (a *FileReader) ReadHandler(arg string) {
 	a.scanner.Scan()
-	fmt.Println(a.scanner.Text())
 	if text := a.scanner.Scan(); text {
-		fmt.Println(a.scanner.Text())
+		a.AddExternal(Event{"categorizeLineHandler", a.scanner.Text()})
 		a.AddEvent(Event{"read", ""})
 	} else {
 		a.AddEvent(Event{"close", ""})
 	}
 }
 
-func (a *AsciiCategorizer) CloseHandler(arg string) {
+func (a *FileReader) CloseHandler(arg string) {
 	fmt.Println("closed")
 	a.file.Close()
 }
@@ -75,4 +74,19 @@ func check(e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+type AsciiCategorizer struct {
+	EventDrivenModule
+}
+
+func (a *AsciiCategorizer) HandleEvent(event Event) {
+	handlers := map[string]func(string){
+		"categorizeLineHandler": a.CategorizeLineHandler}
+	handler := handlers[event.Name]
+	handler(event.Arg)
+}
+
+func (a *AsciiCategorizer) CategorizeLineHandler(line string) {
+	fmt.Println(line)
 }

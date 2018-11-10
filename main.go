@@ -17,8 +17,15 @@ func main() { /*
 		case len(args) == 0:
 			fmt.Println(">>")
 		}*/
+	f := lexer.FileReader{}
 	a := lexer.AsciiCategorizer{}
-	a.AddEvent(lexer.Event{"open", "sample-program/quicksort.bas"})
+
+	f.AddEvent(lexer.Event{"open", "sample-program/quicksort.bas"})
+	f.AddExternal = a.AddEvent
+	for !f.IsEmpty() {
+		event := f.PopEvent()
+		f.HandleEvent(event)
+	}
 	for !a.IsEmpty() {
 		event := a.PopEvent()
 		a.HandleEvent(event)
