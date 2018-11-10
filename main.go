@@ -1,23 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 
 	"github.com/mateusnakajo/basic-compiler/lexer"
 )
 
-func main() {
-	args := os.Args[1:]
-	switch {
-	case len(args) > 1:
-		fmt.Println("Usage: basic [script]")
-	case len(args) == 1:
-		lexer.RunLexer(readFile(args[0]))
-	case len(args) == 0:
-		fmt.Println(">>")
+func main() { /*
+		args := os.Args[1:]
+		switch {
+		case len(args) > 1:
+			fmt.Println("Usage: basic [script]")
+		case len(args) == 1:
+			lexer.RunLexer(readFile(args[0]))
+		case len(args) == 0:
+			fmt.Println(">>")
+		}*/
+	a := lexer.AsciiCategorizer{}
+	a.AddEvent(lexer.Event{"open", "sample-program/quicksort.bas"})
+	for !a.IsEmpty() {
+		event := a.PopEvent()
+		a.HandleEvent(event)
 	}
 }
 
