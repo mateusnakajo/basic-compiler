@@ -1,5 +1,9 @@
 package lexer
 
+import (
+	"fmt"
+)
+
 type State struct {
 	name    string
 	next    func(*fsm, Token) State
@@ -10,14 +14,14 @@ type fsmInterface interface {
 	ConsumeToken(Token)
 	GetCurrent() State
 	GetChildren() fsmInterface
-	GetTest() int
+	GetName() string
 }
 
 type fsm struct {
 	initial  State
 	current  State
 	children fsmInterface
-	test     int
+	name     string
 }
 
 func (f *fsm) ConsumeToken(token Token) {
@@ -32,8 +36,8 @@ func (f fsm) GetCurrent() State {
 	return f.current
 }
 
-func (f fsm) GetTest() int {
-	return f.test
+func (f fsm) GetName() string {
+	return f.name
 }
 
 type program struct {
@@ -42,6 +46,7 @@ type program struct {
 
 func NewProgram() program {
 	program := program{}
+	program.name = "program"
 	nextState := State{
 		name:    "1",
 		isFinal: true}
@@ -50,14 +55,12 @@ func NewProgram() program {
 		next: func(f *fsm, t Token) State {
 			b := NewBStatement()
 			b.ConsumeToken(t)
-			b.test = 23
 			f.children = &b
 			return nextState
 		},
 		isFinal: false}
 	program.initial = initialState
 	program.current = initialState
-	program.test = 22
 	return program
 }
 
@@ -67,16 +70,17 @@ type bstatement struct {
 
 func NewBStatement() bstatement {
 	bstatement := bstatement{}
+	bstatement.name = "bstatement"
 	nextState := State{
 		name:    "1",
 		isFinal: true}
 	initialState := State{
 		name: "0",
 		next: func(f *fsm, t Token) State {
-			if t.lexeme == "1" {
+			if t.tokenType == Number {
 				return nextState
 			}
-			return State{}
+			return nextState // FIXME
 		},
 		isFinal: false}
 	bstatement.initial = initialState
@@ -107,10 +111,14 @@ func (s *syntaticAnalyser) HandleEvent(event Event) {
 func (s *syntaticAnalyser) ConsumeToken(token Token) {
 	leaf := s.program
 	token = Token{lexeme: "1"}
-	for ; leaf.GetChildren() != nil; leaf = leaf.GetChildren() {
+	for {
+		if leaf.GetChildren() == nil {
+			break
+		}
+		leaf = leaf.GetChildren()
 	}
-	leaf.ConsumeToken(token)
-	if leaf.GetCurrent().isFinal {
-		leaf = nil
+	fmt.Println(leaf.GetName())
+	if !leaf.GetCurrent().isFinal {
+		leaf.ConsumeToken(token)
 	}
 }
