@@ -22,7 +22,7 @@ type Lexer struct {
 }
 
 type CategorizedChar struct {
-	Char byte
+	Char rune
 	Type string
 }
 
@@ -98,7 +98,7 @@ func charListSource(ctx context.Context, in <-chan string) (<-chan CategorizedCh
 					return
 				}
 			}
-			out <- CategorizedChar{byte('\n'), "control"}
+			out <- CategorizedChar{'\n', "control"}
 		}
 	}()
 
@@ -213,22 +213,6 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
-}
-
-func categorizeChar(in byte) CategorizedChar {
-	categorizedChar := CategorizedChar{Char: in}
-	switch char := rune(in); {
-	case unicode.IsLetter(char):
-		categorizedChar.Type = "Letter"
-	case unicode.IsDigit(char):
-		categorizedChar.Type = "Digit"
-	case char == ' ':
-		categorizedChar.Type = "Delimiter"
-	case char == ':' || char == '=' || char == '+' || char == ';':
-		categorizedChar.Type = "Special"
-	}
-
-	return categorizedChar
 }
 
 func RunLexer(program string) ([]Token, error) {

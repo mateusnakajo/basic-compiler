@@ -4,11 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
+	"unicode"
 )
 
 type EventDrivenModule struct {
 	Events      []Event
-	Handlers    map[string]func(string)
 	AddExternal func(Event)
 }
 
@@ -22,13 +23,17 @@ func (e *EventDrivenModule) PopEvent() Event {
 	return firstEvent
 }
 
+func (e *EventDrivenModule) LookAhead() Event {
+	return e.Events[0]
+}
+
 func (e *EventDrivenModule) IsEmpty() bool {
 	return len(e.Events) == 0
 }
 
 type Event struct {
 	Name string
-	Arg  string
+	Arg  interface{}
 }
 
 type FileReader struct {
@@ -44,7 +49,7 @@ func (a *FileReader) HandleEvent(event Event) {
 		"read":  a.ReadHandler,
 		"close": a.CloseHandler}
 	handler := handlers[event.Name]
-	handler(event.Arg)
+	handler(event.Arg.(string))
 }
 
 func (a *FileReader) OpenHandler(filename string) {
@@ -56,17 +61,15 @@ func (a *FileReader) OpenHandler(filename string) {
 }
 
 func (a *FileReader) ReadHandler(arg string) {
-	a.scanner.Scan()
 	if text := a.scanner.Scan(); text {
-		a.AddExternal(Event{"categorizeLineHandler", a.scanner.Text()})
 		a.AddEvent(Event{"read", ""})
+		a.AddExternal(Event{"categorizeLineHandler", a.scanner.Text()})
 	} else {
 		a.AddEvent(Event{"close", ""})
 	}
 }
 
 func (a *FileReader) CloseHandler(arg string) {
-	fmt.Println("closed")
 	a.file.Close()
 }
 
@@ -84,9 +87,112 @@ func (a *AsciiCategorizer) HandleEvent(event Event) {
 	handlers := map[string]func(string){
 		"categorizeLineHandler": a.CategorizeLineHandler}
 	handler := handlers[event.Name]
-	handler(event.Arg)
+	handler(event.Arg.(string))
 }
 
 func (a *AsciiCategorizer) CategorizeLineHandler(line string) {
-	fmt.Println(line)
+	for i := 0; i < len(line); i++ {
+		a.AddExternal(Event{"tokenizeString", categorizeChar(line[i])})
+	}
+	a.AddExternal(Event{"tokenizeString", categorizeChar('\n')})
+}
+
+func categorizeChar(in byte) CategorizedChar {
+	categorizedChar := CategorizedChar{Char: rune(in)}
+	switch char := rune(in); {
+	case unicode.IsLetter(char):
+		categorizedChar.Type = "Letter"
+	case unicode.IsDigit(char):
+		categorizedChar.Type = "Digit"
+	case char == ' ' || char == '\n':
+		categorizedChar.Type = "Delimiter"
+	default:
+		categorizedChar.Type = "Special"
+	}
+
+	return categorizedChar
+}
+
+type TokenCategorizer struct {
+	EventDrivenModule
+	acc string
+}
+
+func (t *TokenCategorizer) HandleEvent(event Event) {
+	handlers := map[string]func(CategorizedChar){
+		"tokenizeString": t.tokenizeString}
+	handler := handlers[event.Name]
+	handler(event.Arg.(CategorizedChar))
+}
+
+func (t *TokenCategorizer) tokenizeString(char CategorizedChar) {
+	if char.Type == "Letter" || char.Type == "Digit" {
+		t.acc += string(char.Char)
+	} else if char.Type == "Delimiter" {
+		token := t.createTokenFromAcc()
+		t.AddExternal(Event{"consumeToken", token})
+		t.acc = ""
+	} else if char.Type == "Special" {
+		token1 := t.createTokenFromAcc()
+		t.AddExternal(Event{"consumeToken", token1})
+		token2 := t.createSpecialToken(string(char.Char))
+		t.AddExternal(Event{"consumeToken", token2})
+		t.acc = ""
+	}
+}
+
+func (t *TokenCategorizer) createTokenFromAcc() (token Token) {
+	token = Token{}
+	if t.acc != "" {
+		if _, err := strconv.Atoi(t.acc); err == nil {
+			token = Token{tokenType: Number, lexeme: t.acc}
+		} else {
+			token = Token{tokenType: Identifier, lexeme: t.acc}
+		}
+	}
+	return token
+}
+
+func (t *TokenCategorizer) createSpecialToken(special string) (token Token) {
+	token = t.createSpecialTokenWithMoreThenOneChar(special)
+	if token == (Token{}) {
+		switch special {
+		case "(":
+			token = Token{tokenType: LeftParen, lexeme: string(special)}
+		case ")":
+			token = Token{tokenType: RightParen, lexeme: string(special)}
+		case "=":
+			token = Token{tokenType: Equal, lexeme: string(special)}
+		case "\n":
+			token = Token{tokenType: EndOfLine, lexeme: string(special)}
+		case ",":
+			token = Token{tokenType: Comma, lexeme: string(special)}
+		case "-":
+			token = Token{tokenType: Minus, lexeme: string(special)}
+		case "+":
+			token = Token{tokenType: Plus, lexeme: string(special)}
+		case ">":
+			token = Token{tokenType: Greater, lexeme: string(special)}
+		case "<":
+			token = Token{tokenType: Less, lexeme: string(special)}
+		}
+	}
+	return token
+}
+
+func (t *TokenCategorizer) createSpecialTokenWithMoreThenOneChar(special string) (token Token) {
+	token = Token{}
+	if special == ">" && t.LookAhead().Arg.(CategorizedChar).Char == '=' {
+		token = Token{tokenType: GreaterEqual, lexeme: ">="}
+	} //
+	if token != (Token{}) {
+		t.PopEvent()
+	}
+	return token
+}
+
+func printToken(token Token) {
+	if token != (Token{}) {
+		fmt.Println(token)
+	}
 }
