@@ -1,13 +1,13 @@
 package lexer
 
-import (
-	"fmt"
-)
-
 type State struct {
 	name    string
 	next    func(*fsm, Token) State
 	isFinal bool
+}
+
+func invalidState() State {
+	return State{name: "INVALID", isFinal: true}
 }
 
 type fsmInterface interface {
@@ -15,6 +15,7 @@ type fsmInterface interface {
 	GetCurrent() State
 	GetChildren() fsmInterface
 	GetName() string
+	SetChildren(fsmInterface)
 }
 
 type fsm struct {
@@ -25,11 +26,17 @@ type fsm struct {
 }
 
 func (f *fsm) ConsumeToken(token Token) {
+	//fmt.Println("Antes", f.GetName(), f.GetCurrent().name, token)
 	f.current = f.current.next(f, token)
+	//fmt.Println("Depois", f.GetName(), f.GetCurrent().name, token)
 }
 
 func (f fsm) GetChildren() fsmInterface {
 	return f.children
+}
+
+func (f *fsm) SetChildren(fsm fsmInterface) {
+	f.children = fsm
 }
 
 func (f fsm) GetCurrent() State {
@@ -40,85 +47,10 @@ func (f fsm) GetName() string {
 	return f.name
 }
 
+func (f fsm) InInvalidState() bool {
+	return f.current.name == "INVALID"
+}
+
 type program struct {
 	fsm
-}
-
-func NewProgram() program {
-	program := program{}
-	program.name = "program"
-	nextState := State{
-		name:    "1",
-		isFinal: true}
-	initialState := State{
-		name: "0",
-		next: func(f *fsm, t Token) State {
-			b := NewBStatement()
-			b.ConsumeToken(t)
-			f.children = &b
-			return nextState
-		},
-		isFinal: false}
-	program.initial = initialState
-	program.current = initialState
-	return program
-}
-
-type bstatement struct {
-	fsm
-}
-
-func NewBStatement() bstatement {
-	bstatement := bstatement{}
-	bstatement.name = "bstatement"
-	nextState := State{
-		name:    "1",
-		isFinal: true}
-	initialState := State{
-		name: "0",
-		next: func(f *fsm, t Token) State {
-			if t.tokenType == Number {
-				return nextState
-			}
-			return nextState // FIXME
-		},
-		isFinal: false}
-	bstatement.initial = initialState
-	bstatement.current = initialState
-	bstatement.children = nil
-	return bstatement
-}
-
-type syntaticAnalyser struct {
-	EventDrivenModule
-	program fsmInterface
-}
-
-func NewSyntaticAnalyser() syntaticAnalyser {
-	syntaticAnalyser := syntaticAnalyser{}
-	program := NewProgram()
-	syntaticAnalyser.program = &program
-	return syntaticAnalyser
-}
-
-func (s *syntaticAnalyser) HandleEvent(event Event) {
-	handlers := map[string]func(Token){
-		"consumeToken": s.ConsumeToken}
-	handler := handlers[event.Name]
-	handler(event.Arg.(Token))
-}
-
-func (s *syntaticAnalyser) ConsumeToken(token Token) {
-	leaf := s.program
-	token = Token{lexeme: "1"}
-	for {
-		if leaf.GetChildren() == nil {
-			break
-		}
-		leaf = leaf.GetChildren()
-	}
-	fmt.Println(leaf.GetName())
-	if !leaf.GetCurrent().isFinal {
-		leaf.ConsumeToken(token)
-	}
 }

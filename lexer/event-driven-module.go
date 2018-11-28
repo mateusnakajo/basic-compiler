@@ -2,7 +2,6 @@ package lexer
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 	"strconv"
 	"unicode"
@@ -189,10 +188,4 @@ func (t *TokenCategorizer) createSpecialTokenWithMoreThenOneChar(special string)
 		t.PopEvent()
 	}
 	return token
-}
-
-func printToken(token Token) {
-	if token != (Token{}) {
-		fmt.Println(token)
-	}
 }
