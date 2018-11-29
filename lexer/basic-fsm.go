@@ -4,36 +4,21 @@ func NewProgram() program {
 
 	program := program{}
 	program.name = "program"
-	state3 := State{
-		name:    "3",
-		isFinal: true}
-	state2 := State{
-		name: "2",
-		next: func(f *fsm, t Token) State {
-			if t.lexeme == "END" {
-				return state3
-			}
-			return invalidState()
-		},
-		isFinal: false}
 	state1 := State{
 		name:    "1",
 		isFinal: false}
-	state1.next = func(f *fsm, t Token) State {
-		if t.tokenType == Number {
-			return state2
-		}
+	state1.next = func(f *fsm, t Token, s *Stack) State {
 		b := NewBStatement()
-		b.ConsumeToken(t)
-		f.SetChildren(&b)
+		b.ConsumeToken(t, s)
+		s.AddFSM(&b)
 		return state1
 	}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			b := NewBStatement()
-			b.ConsumeToken(t)
-			f.SetChildren(&b)
+			b.ConsumeToken(t, s)
+			s.AddFSM(&b)
 			return state1
 		},
 		isFinal: false}
@@ -54,19 +39,43 @@ func NewBStatement() bstatement {
 		isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token) State {
-			assignFSM := NewAssign()
-			assignFSM.ConsumeToken(t)
-			if assignFSM.InInvalidState() {
-				return invalidState()
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "END" {
+				return finalState //FIXME
 			}
-			f.SetChildren(&assignFSM)
-			return finalState
-		},
-		isFinal: false}
+			assignFSM := NewAssign()
+			assignFSM.ConsumeToken(t, s)
+			if !assignFSM.InInvalidState() {
+				s.AddFSM(&assignFSM)
+				return finalState
+			}
+
+			nextFSM := NewPredef()
+			nextFSM.ConsumeToken(t, s)
+			if !nextFSM.InInvalidState() {
+				s.AddFSM(&nextFSM)
+				return finalState
+			}
+
+			readFSM := NewRead()
+			readFSM.ConsumeToken(t, s)
+			if !readFSM.InInvalidState() {
+				s.AddFSM(&readFSM)
+				return finalState
+			}
+
+			printFSM := NewPrint()
+			printFSM.ConsumeToken(t, s)
+			if !printFSM.InInvalidState() {
+				s.AddFSM(&printFSM)
+				return finalState
+			}
+
+			return invalidState()
+		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			if t.tokenType == Number {
 				return state1
 			}
@@ -75,7 +84,6 @@ func NewBStatement() bstatement {
 		isFinal: false}
 	bstatement.initial = state0
 	bstatement.current = state0
-	bstatement.children = nil
 	return bstatement
 }
 
@@ -91,30 +99,30 @@ func NewAssign() assignFSM {
 		isFinal: true}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			e := NewExp()
-			e.ConsumeToken(t)
+			e.ConsumeToken(t, s)
 			if e.InInvalidState() {
 				return invalidState()
 			}
-			f.SetChildren(&e)
+			s.AddFSM(&e)
 			return state4
 		}}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			if t.tokenType == Equal {
 				return state3
 			}
 			return invalidState()
 		}}
 	state1 := State{
-		name: "asdasddasd",
-		next: func(f *fsm, t Token) State {
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
 			v := NewVar()
-			v.ConsumeToken(t)
+			v.ConsumeToken(t, s)
 			if v.GetCurrent().name != invalidState().name {
-				f.SetChildren(&v)
+				s.AddFSM(&v)
 			} else {
 				return invalidState()
 			}
@@ -123,7 +131,7 @@ func NewAssign() assignFSM {
 		isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			if t.lexeme == "LET" {
 				return state1
 			}
@@ -147,7 +155,7 @@ func NewVar() varFSM { //FIXME
 		isFinal: true}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token) State {
+		next: func(f *fsm, t Token, s *Stack) State {
 			if t.tokenType == Identifier {
 				return state1
 			}
@@ -165,5 +173,319 @@ type expFSM struct {
 
 func NewExp() expFSM {
 	expFSM := expFSM{}
+	expFSM.name = "exp"
+	state1 := State{
+		name:    "1",
+		isFinal: true} //FIXME
+	state0 := State{
+		name:    "0",
+		isFinal: false}
+	state0.next = func(f *fsm, t Token, s *Stack) State {
+		if t.tokenType == Plus || t.tokenType == Minus {
+			return state0
+		}
+		ebFSM := NewEB()
+		ebFSM.ConsumeToken(t, s)
+		if ebFSM.GetCurrent().name != invalidState().name {
+			s.AddFSM(&ebFSM)
+			return state1
+		}
+		return invalidState()
+	}
+	expFSM.initial = state0
+	expFSM.current = state0
 	return expFSM
+}
+
+type ebFSM struct {
+	fsm
+}
+
+func NewEB() ebFSM {
+	ebFSM := ebFSM{}
+	ebFSM.name = "eb"
+	state5 := State{
+		name:    "5",
+		isFinal: true}
+	state4 := State{
+		name: "4",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == RightParen {
+				return state5
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state3 := State{
+		name: "3",
+		next: func(f *fsm, t Token, s *Stack) State {
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s)
+			if expFSM.GetCurrent().name != invalidState().name {
+				s.AddFSM(&expFSM)
+			} else {
+				return invalidState()
+			}
+			return state4
+		},
+		isFinal: false}
+	state2 := State{
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == LeftParen {
+				return state3
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Identifier {
+				return state2
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "FN" {
+				return state1
+			}
+			if t.tokenType == LeftParen {
+				return state3
+			}
+			if t.tokenType == Number || t.tokenType == Identifier {
+				return state5
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	ebFSM.initial = state0
+	ebFSM.current = state0
+	return ebFSM
+}
+
+type predefFSM struct {
+	fsm
+}
+
+func NewPredef() predefFSM {
+	predefFSM := predefFSM{}
+	predefFSM.name = "predef"
+	state1 := State{
+		name:    "1",
+		isFinal: true}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "SIN" { //FIXME
+				return state1
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	predefFSM.initial = state0
+	predefFSM.current = state0
+	return predefFSM
+}
+
+type readFSM struct {
+	fsm
+}
+
+func NewRead() readFSM {
+	readFSM := readFSM{}
+	readFSM.name = "read"
+	state2 := State{
+		name:    "2",
+		isFinal: true} //FIXME
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			varFSM := NewVar()
+			varFSM.ConsumeToken(t, s)
+			if !varFSM.InInvalidState() {
+				s.AddFSM(&varFSM)
+				return state2
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "READ" { //FIXME
+				return state1
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	readFSM.initial = state0
+	readFSM.current = state0
+	return readFSM
+}
+
+type dataFSM struct {
+	fsm
+}
+
+func NewData() dataFSM {
+	dataFSM := dataFSM{}
+	dataFSM.name = "data"
+	state2 := State{
+		name:    "2",
+		isFinal: true} //FIXME
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			// varFSM := NewVar()
+			// varFSM.ConsumeToken(t, s)
+			// if !varFSM.InInvalidState() {
+			// 	s.AddFSM(&varFSM)
+			// 	return state2
+			// } FIXME
+			return state2
+		},
+		isFinal: false}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "DATA" { //FIXME
+				return state1
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	dataFSM.initial = state0
+	dataFSM.current = state0
+	return dataFSM
+}
+
+type printFSM struct {
+	fsm
+}
+
+func NewPrint() printFSM {
+	printFSM := printFSM{}
+	printFSM.name = "print"
+	state4 := State{
+		name:    "4",
+		isFinal: true}
+	state1 := State{
+		name:    "1",
+		isFinal: true}
+	state3 := State{
+		name: "3",
+		next: func(f *fsm, t Token, s *Stack) State {
+			pitemFSM := NewPitem()
+			pitemFSM.ConsumeToken(t, s)
+			if !pitemFSM.InInvalidState() {
+				s.AddFSM(&pitemFSM)
+				return state1
+			}
+			return state1
+		},
+		isFinal: false}
+	state2 := State{
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Comma {
+				return state3
+			}
+			return invalidState()
+		},
+		isFinal: false} //FIXME
+	state1.next = func(f *fsm, t Token, s *Stack) State {
+		if t.tokenType == Comma {
+			return state4
+		}
+		pitemFSM := NewPitem()
+		pitemFSM.ConsumeToken(t, s)
+		if !pitemFSM.InInvalidState() {
+			s.AddFSM(&pitemFSM)
+			return state2
+		}
+		return state2
+	}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.lexeme == "PRINT" { //FIXME
+				return state1
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	printFSM.initial = state0
+	printFSM.current = state0
+	return printFSM
+}
+
+type pitemFSM struct {
+	fsm
+}
+
+func NewPitem() pitemFSM {
+	pitemFSM := pitemFSM{}
+	state2 := State{
+		name:    "2",
+		isFinal: true}
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s)
+			if !expFSM.InInvalidState() {
+				return state2
+			}
+			return invalidState()
+		}, isFinal: true}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == String {
+				return state1
+			}
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s)
+			if !expFSM.InInvalidState() {
+				return state2
+			}
+			return invalidState()
+		}, isFinal: false}
+	pitemFSM.initial = state0
+	pitemFSM.current = state0
+	return pitemFSM
+}
+
+type gotoFSM struct {
+	fsm
+}
+
+func NewGoto() gotoFSM {
+	gotoFSM := gotoFSM{}
+	state2 := State{
+		name:    "2",
+		isFinal: true}
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Number {
+				return state2
+			}
+			return invalidState()
+		}, isFinal: false}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == GoTo {
+				return state1
+			}
+			return invalidState()
+		}, isFinal: false}
+	gotoFSM.initial = state0
+	gotoFSM.current = state0
+	return gotoFSM
 }
