@@ -23,14 +23,16 @@ func (s *syntaticAnalyser) HandleEvent(event Event) {
 }
 
 func (s *syntaticAnalyser) ConsumeToken(token Token) {
+	fmt.Println("\n")
 	fmt.Println(token)
-	// leaf := s.fsmStack.TopFSM()
-	// leaf.ConsumeToken(token, &s.fsmStack)
-	// fmt.Println(s.fsmStack.TopFSM())
-	// for !s.fsmStack.IsEmpty() && s.fsmStack.TopFSM().GetCurrent().isFinal { //FIXME
-	// 	s.fsmStack.PopFSM()
-	// 	fmt.Println(s.fsmStack)
-	// }
+	s.fsmStack.PrintStack()
+	if !s.fsmStack.TopFSM().InInvalidState() {
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack)
+	}
+	for s.fsmStack.TopFSM().InInvalidState() {
+		s.fsmStack.PopFSM()
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack)
+	}
 }
 
 type Stack struct {
@@ -54,4 +56,10 @@ func (s *Stack) TopFSM() fsmInterface {
 
 func (s Stack) IsEmpty() bool {
 	return len(s.fsm) == 0
+}
+
+func (s Stack) PrintStack() {
+	for i := range s.fsm {
+		fmt.Println("FSM:", s.fsm[i].GetName(), "Estado:", s.fsm[i].GetCurrent())
+	}
 }

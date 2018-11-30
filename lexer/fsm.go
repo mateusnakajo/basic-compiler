@@ -14,6 +14,7 @@ type fsmInterface interface {
 	ConsumeToken(Token, *Stack)
 	GetCurrent() State
 	GetName() string
+	InInvalidState() bool
 }
 
 type fsm struct {

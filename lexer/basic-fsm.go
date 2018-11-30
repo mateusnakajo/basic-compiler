@@ -35,7 +35,10 @@ func NewBStatement() bstatement {
 	bstatement := bstatement{}
 	bstatement.name = "bstatement"
 	finalState := State{
-		name:    "2",
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
@@ -95,7 +98,10 @@ func NewAssign() assignFSM {
 	assignFSM := assignFSM{}
 	assignFSM.name = "assign"
 	state4 := State{
-		name:    "4",
+		name: "4",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state3 := State{
 		name: "3",
@@ -107,7 +113,8 @@ func NewAssign() assignFSM {
 			}
 			s.AddFSM(&e)
 			return state4
-		}}
+		},
+		isFinal: false}
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t Token, s *Stack) State {
@@ -121,7 +128,7 @@ func NewAssign() assignFSM {
 		next: func(f *fsm, t Token, s *Stack) State {
 			v := NewVar()
 			v.ConsumeToken(t, s)
-			if v.GetCurrent().name != invalidState().name {
+			if !v.InInvalidState() {
 				s.AddFSM(&v)
 			} else {
 				return invalidState()
@@ -151,7 +158,10 @@ func NewVar() varFSM { //FIXME
 	varFSM := varFSM{}
 	varFSM.name = "var"
 	state1 := State{
-		name:    "1",
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state0 := State{
 		name: "0",
@@ -174,9 +184,29 @@ type expFSM struct {
 func NewExp() expFSM {
 	expFSM := expFSM{}
 	expFSM.name = "exp"
+
 	state1 := State{
 		name:    "1",
-		isFinal: true} //FIXME
+		isFinal: true}
+	state2 := State{
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			ebFSM := NewEB()
+			ebFSM.ConsumeToken(t, s)
+			if ebFSM.GetCurrent().name != invalidState().name {
+				s.AddFSM(&ebFSM)
+				return state1
+			}
+			return invalidState()
+		}, isFinal: false}
+
+	state1.next = func(f *fsm, t Token, s *Stack) State {
+		if t.tokenType == Plus || t.tokenType == Minus || t.tokenType == Star || t.tokenType == Slash {
+			return state2
+		}
+		return invalidState()
+	}
+
 	state0 := State{
 		name:    "0",
 		isFinal: false}
@@ -205,7 +235,10 @@ func NewEB() ebFSM {
 	ebFSM := ebFSM{}
 	ebFSM.name = "eb"
 	state5 := State{
-		name:    "5",
+		name: "5",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state4 := State{
 		name: "4",
@@ -275,7 +308,10 @@ func NewPredef() predefFSM {
 	predefFSM := predefFSM{}
 	predefFSM.name = "predef"
 	state1 := State{
-		name:    "1",
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state0 := State{
 		name: "0",
@@ -299,7 +335,10 @@ func NewRead() readFSM {
 	readFSM := readFSM{}
 	readFSM.name = "read"
 	state2 := State{
-		name:    "2",
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true} //FIXME
 	state1 := State{
 		name: "1",
@@ -335,7 +374,10 @@ func NewData() dataFSM {
 	dataFSM := dataFSM{}
 	dataFSM.name = "data"
 	state2 := State{
-		name:    "2",
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true} //FIXME
 	state1 := State{
 		name: "1",
@@ -371,10 +413,16 @@ func NewPrint() printFSM {
 	printFSM := printFSM{}
 	printFSM.name = "print"
 	state4 := State{
-		name:    "4",
+		name: "4",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state1 := State{
-		name:    "1",
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state3 := State{
 		name: "3",
@@ -430,7 +478,10 @@ type pitemFSM struct {
 func NewPitem() pitemFSM {
 	pitemFSM := pitemFSM{}
 	state2 := State{
-		name:    "2",
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
@@ -467,7 +518,10 @@ type gotoFSM struct {
 func NewGoto() gotoFSM {
 	gotoFSM := gotoFSM{}
 	state2 := State{
-		name:    "2",
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
