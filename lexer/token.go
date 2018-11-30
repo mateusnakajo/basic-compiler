@@ -44,6 +44,7 @@ const (
 	Gosub
 	Return
 	Rem
+	Then
 
 	// literals
 	Identifier

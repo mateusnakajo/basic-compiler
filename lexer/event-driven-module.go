@@ -125,17 +125,24 @@ func (t *TokenCategorizer) HandleEvent(event Event) {
 }
 
 func (t *TokenCategorizer) tokenizeString(char CategorizedChar) {
+	//fmt.Println(string(char.Type), string(char.Char))
 	if char.Type == "Letter" || char.Type == "Digit" {
 		t.acc += string(char.Char)
 	} else if char.Type == "Delimiter" {
 		token := t.createTokenFromAcc()
-		t.AddExternal(Event{"consumeToken", token})
+		if token != (Token{}) {
+			t.AddExternal(Event{"consumeToken", token})
+		}
 		t.acc = ""
 	} else if char.Type == "Special" {
 		token1 := t.createTokenFromAcc()
-		t.AddExternal(Event{"consumeToken", token1})
+		if token1 != (Token{}) {
+			t.AddExternal(Event{"consumeToken", token1})
+		}
 		token2 := t.createSpecialToken(string(char.Char))
-		t.AddExternal(Event{"consumeToken", token2})
+		if token2 != (Token{}) {
+			t.AddExternal(Event{"consumeToken", token2})
+		}
 		t.acc = ""
 	}
 }
@@ -146,7 +153,16 @@ func (t *TokenCategorizer) createTokenFromAcc() (token Token) {
 		if _, err := strconv.Atoi(t.acc); err == nil {
 			token = Token{tokenType: Number, lexeme: t.acc}
 		} else {
-			token = Token{tokenType: Identifier, lexeme: t.acc}
+			switch t.acc {
+			case "GOTO":
+				token = Token{tokenType: GoTo, lexeme: "GOTO"}
+			case "IF":
+				token = Token{tokenType: If, lexeme: "IF"}
+			case "THEN":
+				token = Token{tokenType: Then, lexeme: "THEN"}
+			default:
+				token = Token{tokenType: Identifier, lexeme: t.acc}
+			}
 		}
 	}
 	return token

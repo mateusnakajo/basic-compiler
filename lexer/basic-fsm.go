@@ -74,6 +74,20 @@ func NewBStatement() bstatement {
 				return finalState
 			}
 
+			gotoFSM := NewGoto()
+			gotoFSM.ConsumeToken(t, s)
+			if !gotoFSM.InInvalidState() {
+				s.AddFSM(&gotoFSM)
+				return finalState
+			}
+
+			ifFSM := NewIf()
+			ifFSM.ConsumeToken(t, s)
+			if !ifFSM.InInvalidState() {
+				s.AddFSM(&ifFSM)
+				return finalState
+			}
+
 			return invalidState()
 		}, isFinal: false}
 	state0 := State{
@@ -517,6 +531,7 @@ type gotoFSM struct {
 
 func NewGoto() gotoFSM {
 	gotoFSM := gotoFSM{}
+	gotoFSM.name = "goto"
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t Token, s *Stack) State {
@@ -542,4 +557,77 @@ func NewGoto() gotoFSM {
 	gotoFSM.initial = state0
 	gotoFSM.current = state0
 	return gotoFSM
+}
+
+type ifFSM struct {
+	fsm
+}
+
+func NewIf() ifFSM {
+	ifFSM := ifFSM{}
+	ifFSM.name = "if"
+	state6 := State{
+		name: "6",
+		next: func(f *fsm, t Token, s *Stack) State {
+			return invalidState()
+		},
+		isFinal: true}
+	state5 := State{
+		name: "5",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Number {
+				return state6
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state4 := State{
+		name: "4",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Then {
+				return state5
+			}
+			return invalidState()
+		}, isFinal: false}
+	state3 := State{
+		name: "3",
+		next: func(f *fsm, t Token, s *Stack) State {
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s)
+			if !expFSM.InInvalidState() {
+				s.AddFSM(&expFSM)
+			}
+			return state4
+		}, isFinal: false}
+	state2 := State{
+		name: "2",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == Greater || t.tokenType == GreaterEqual ||
+				t.tokenType == Different || t.tokenType == Less ||
+				t.tokenType == LessEqual || t.tokenType == Equal {
+				return state3
+			}
+			return invalidState()
+		}, isFinal: false}
+	state1 := State{
+		name: "1",
+		next: func(f *fsm, t Token, s *Stack) State {
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s)
+			if !expFSM.InInvalidState() {
+				s.AddFSM(&expFSM)
+			}
+			return state2
+		}, isFinal: false}
+	state0 := State{
+		name: "0",
+		next: func(f *fsm, t Token, s *Stack) State {
+			if t.tokenType == If {
+				return state1
+			}
+			return invalidState()
+		}, isFinal: false}
+	ifFSM.initial = state0
+	ifFSM.current = state0
+	return ifFSM
 }

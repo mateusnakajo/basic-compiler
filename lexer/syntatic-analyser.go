@@ -1,6 +1,8 @@
 package lexer
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type syntaticAnalyser struct {
 	EventDrivenModule
@@ -23,9 +25,13 @@ func (s *syntaticAnalyser) HandleEvent(event Event) {
 }
 
 func (s *syntaticAnalyser) ConsumeToken(token Token) {
-	fmt.Println("\n")
-	fmt.Println(token)
-	s.fsmStack.PrintStack()
+
+	if true {
+		fmt.Println("\n")
+		fmt.Println(token)
+		s.fsmStack.PrintStack()
+	}
+
 	if !s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack)
 	}
