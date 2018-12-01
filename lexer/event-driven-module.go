@@ -160,6 +160,22 @@ func (t *TokenCategorizer) createTokenFromAcc() (token Token) {
 				token = Token{tokenType: If, lexeme: "IF"}
 			case "THEN":
 				token = Token{tokenType: Then, lexeme: "THEN"}
+			case "FOR":
+				token = Token{tokenType: For, lexeme: "FOR"}
+			case "TO":
+				token = Token{tokenType: To, lexeme: "TO"}
+			case "STEP":
+				token = Token{tokenType: Step, lexeme: "STEP"}
+			case "NEXT":
+				token = Token{tokenType: Next, lexeme: "NEXT"}
+			case "DIM":
+				token = Token{tokenType: Dim, lexeme: "DIM"}
+			case "DEF":
+				token = Token{tokenType: Def, lexeme: "DEF"}
+			case "GOSUB":
+				token = Token{tokenType: Gosub, lexeme: "GOSUB"}
+			case "RETURN":
+				token = Token{tokenType: Return, lexeme: "RETURN"}
 			default:
 				token = Token{tokenType: Identifier, lexeme: t.acc}
 			}
@@ -186,6 +202,10 @@ func (t *TokenCategorizer) createSpecialToken(special string) (token Token) {
 			token = Token{tokenType: Minus, lexeme: string(special)}
 		case "+":
 			token = Token{tokenType: Plus, lexeme: string(special)}
+		case "*":
+			token = Token{tokenType: Star, lexeme: string(special)}
+		case "/":
+			token = Token{tokenType: Slash, lexeme: string(special)}
 		case ">":
 			token = Token{tokenType: Greater, lexeme: string(special)}
 		case "<":
