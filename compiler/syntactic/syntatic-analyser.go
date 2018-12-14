@@ -33,12 +33,12 @@ func (s *syntaticAnalyser) HandleEvent(event compiler.Event) {
 
 func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
 
-	if true {
+	if false {
 		fmt.Println("\n")
 		fmt.Println(token)
 		s.fsmStack.PrintStack()
 	}
-
+	s.AddExternal(compiler.Event{"test", "oila"})
 	if !s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.semantic)
 	}

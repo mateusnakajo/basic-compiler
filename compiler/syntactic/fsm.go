@@ -46,7 +46,3 @@ func (f fsm) GetName() string {
 func (f fsm) InInvalidState() bool {
 	return f.current.name == "INVALID"
 }
-
-type program struct {
-	fsm
-}

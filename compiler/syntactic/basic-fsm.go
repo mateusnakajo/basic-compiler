@@ -7,6 +7,10 @@ import (
 	semantic "github.com/mateusnakajo/basic-compiler/compiler/semantic"
 )
 
+type program struct {
+	fsm
+}
+
 func NewProgram() program {
 
 	program := program{}
@@ -165,7 +169,6 @@ func NewAssign() assignFSM {
 		next: func(f *fsm, t lexer.Token, s *Stack, semantic *semantic.Semantic) State {
 			semantic.Evaluate()
 			semantic.DataFloat[semantic.PopString()] = semantic.PopFloat()
-			fmt.Println(semantic)
 			return invalidState()
 		},
 		isFinal: true}

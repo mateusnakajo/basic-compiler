@@ -1,9 +1,10 @@
-package lexer
+package semantic
 
 import (
 	"fmt"
 
 	"github.com/Knetic/govaluate"
+	"github.com/mateusnakajo/basic-compiler/compiler"
 )
 
 // type Semantic struct {
@@ -30,6 +31,7 @@ import (
 // }
 
 type Semantic struct {
+	compiler.EventDrivenModule
 	strings    []string
 	DataFloat  map[string]float64
 	DataArray  map[string][]float64
@@ -59,8 +61,6 @@ func (s *Semantic) SaveInt(value float64) {
 }
 
 func (s *Semantic) Evaluate() {
-	fmt.Println("ANTES EVAL")
-	fmt.Println(s.Expression)
 	expression, _ := govaluate.NewEvaluableExpression(s.Expression)
 	temp, _ := expression.Evaluate(nil)
 	s.SaveInt(temp.(float64))
@@ -77,4 +77,16 @@ func (e ExpressionAssembly) getAssembly() string {
 
 type AssemblyInterface interface {
 	getAssembly() string
+}
+
+func (s *Semantic) HandleEvent(event compiler.Event) {
+	handlers := map[string]func(string){
+		"test": s.TestHandler,
+	}
+	handler := handlers[event.Name]
+	handler(event.Arg.(string))
+}
+
+func (s *Semantic) TestHandler(test string) {
+	fmt.Printf(test)
 }
