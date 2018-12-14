@@ -31,40 +31,40 @@ import (
 
 type Semantic struct {
 	strings    []string
-	dataFloat  map[string]float64
-	dataArray  map[string][]float64
+	DataFloat  map[string]float64
+	DataArray  map[string][]float64
 	accString  string
 	accFloat   float64
-	expression string
+	Expression string
 }
 
-func (s *Semantic) popString() string {
+func (s *Semantic) PopString() string {
 	temp := s.accString
 	s.accString = ""
 	return temp
 }
 
-func (s *Semantic) popFloat() float64 {
+func (s *Semantic) PopFloat() float64 {
 	temp := s.accFloat
 	s.accFloat = 0
 	return temp
 }
 
-func (s *Semantic) saveString(value string) {
+func (s *Semantic) SaveString(value string) {
 	s.accString = value
 }
 
-func (s *Semantic) saveInt(value float64) {
+func (s *Semantic) SaveInt(value float64) {
 	s.accFloat = value
 }
 
-func (s *Semantic) evaluate() {
+func (s *Semantic) Evaluate() {
 	fmt.Println("ANTES EVAL")
-	fmt.Println(s.expression)
-	expression, _ := govaluate.NewEvaluableExpression(s.expression)
+	fmt.Println(s.Expression)
+	expression, _ := govaluate.NewEvaluableExpression(s.Expression)
 	temp, _ := expression.Evaluate(nil)
-	s.saveInt(temp.(float64))
-	s.expression = ""
+	s.SaveInt(temp.(float64))
+	s.Expression = ""
 }
 
 type ExpressionAssembly struct {

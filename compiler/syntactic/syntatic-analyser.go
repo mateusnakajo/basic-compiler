@@ -1,33 +1,37 @@
-package lexer
+package syntactic
 
 import (
 	"fmt"
+
+	compiler "github.com/mateusnakajo/basic-compiler/compiler"
+	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
+	semantic "github.com/mateusnakajo/basic-compiler/compiler/semantic"
 )
 
 type syntaticAnalyser struct {
-	EventDrivenModule
+	compiler.EventDrivenModule
 	program  fsmInterface
 	fsmStack Stack
-	semantic Semantic
+	semantic semantic.Semantic
 }
 
 func NewSyntaticAnalyser() syntaticAnalyser {
 	syntaticAnalyser := syntaticAnalyser{}
 	program := NewProgram()
-	syntaticAnalyser.semantic = Semantic{}
-	syntaticAnalyser.semantic.dataFloat = make(map[string]float64)
+	syntaticAnalyser.semantic = semantic.Semantic{}
+	syntaticAnalyser.semantic.DataFloat = make(map[string]float64)
 	syntaticAnalyser.fsmStack.AddFSM(&program)
 	return syntaticAnalyser
 }
 
-func (s *syntaticAnalyser) HandleEvent(event Event) {
-	handlers := map[string]func(Token){
+func (s *syntaticAnalyser) HandleEvent(event compiler.Event) {
+	handlers := map[string]func(lexer.Token){
 		"consumeToken": s.ConsumeToken}
 	handler := handlers[event.Name]
-	handler(event.Arg.(Token))
+	handler(event.Arg.(lexer.Token))
 }
 
-func (s *syntaticAnalyser) ConsumeToken(token Token) {
+func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
 
 	if true {
 		fmt.Println("\n")

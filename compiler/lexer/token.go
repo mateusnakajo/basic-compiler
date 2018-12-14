@@ -58,6 +58,6 @@ const (
 )
 
 type Token struct {
-	tokenType TokenType
-	lexeme    string
+	TokenType TokenType
+	Lexeme    string
 }

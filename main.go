@@ -4,7 +4,9 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/mateusnakajo/basic-compiler/lexer"
+	"github.com/mateusnakajo/basic-compiler/compiler"
+	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
+	syntactic "github.com/mateusnakajo/basic-compiler/compiler/syntactic"
 )
 
 func main() { /*
@@ -21,8 +23,8 @@ func main() { /*
 	f := lexer.FileReader{}
 	a := lexer.AsciiCategorizer{}
 	t := lexer.TokenCategorizer{}
-	s := lexer.NewSyntaticAnalyser()
-	f.AddEvent(lexer.Event{"open", "sample-program/quicksort.bas"})
+	s := syntactic.NewSyntaticAnalyser()
+	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/quicksort.bas"})
 	f.AddExternal = a.AddEvent
 	a.AddExternal = t.AddEvent
 	t.AddExternal = s.AddEvent
@@ -45,7 +47,6 @@ func main() { /*
 
 	//s := lexer.NewSyntaticAnalyser()
 	//s.HandleEvent(lexer.Event{"consumeToken", lexer.Token{}})
-
 }
 
 func readFile(filename string) string {
