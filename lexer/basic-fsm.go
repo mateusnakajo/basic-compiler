@@ -1,5 +1,9 @@
 package lexer
 
+import (
+	"fmt"
+)
+
 func NewProgram() program {
 
 	program := program{}
@@ -7,17 +11,17 @@ func NewProgram() program {
 	state1 := State{
 		name:    "1",
 		isFinal: false}
-	state1.next = func(f *fsm, t Token, s *Stack) State {
+	state1.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		b := NewBStatement()
-		b.ConsumeToken(t, s)
+		b.ConsumeToken(t, s, semantic)
 		s.AddFSM(&b)
 		return state1
 	}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			b := NewBStatement()
-			b.ConsumeToken(t, s)
+			b.ConsumeToken(t, s, semantic)
 			s.AddFSM(&b)
 			return state1
 		},
@@ -36,95 +40,95 @@ func NewBStatement() bstatement {
 	bstatement.name = "bstatement"
 	finalState := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "END" {
 				return finalState //FIXME
 			}
 			assignFSM := NewAssign()
-			assignFSM.ConsumeToken(t, s)
+			assignFSM.ConsumeToken(t, s, semantic)
 			if !assignFSM.InInvalidState() {
 				s.AddFSM(&assignFSM)
 				return finalState
 			}
 
 			predefFSM := NewPredef()
-			predefFSM.ConsumeToken(t, s)
+			predefFSM.ConsumeToken(t, s, semantic)
 			if !predefFSM.InInvalidState() {
 				s.AddFSM(&predefFSM)
 				return finalState
 			}
 
 			readFSM := NewRead()
-			readFSM.ConsumeToken(t, s)
+			readFSM.ConsumeToken(t, s, semantic)
 			if !readFSM.InInvalidState() {
 				s.AddFSM(&readFSM)
 				return finalState
 			}
 
 			printFSM := NewPrint()
-			printFSM.ConsumeToken(t, s)
+			printFSM.ConsumeToken(t, s, semantic)
 			if !printFSM.InInvalidState() {
 				s.AddFSM(&printFSM)
 				return finalState
 			}
 
 			gotoFSM := NewGoto()
-			gotoFSM.ConsumeToken(t, s)
+			gotoFSM.ConsumeToken(t, s, semantic)
 			if !gotoFSM.InInvalidState() {
 				s.AddFSM(&gotoFSM)
 				return finalState
 			}
 
 			ifFSM := NewIf()
-			ifFSM.ConsumeToken(t, s)
+			ifFSM.ConsumeToken(t, s, semantic)
 			if !ifFSM.InInvalidState() {
 				s.AddFSM(&ifFSM)
 				return finalState
 			}
 
 			forFSM := NewFor()
-			forFSM.ConsumeToken(t, s)
+			forFSM.ConsumeToken(t, s, semantic)
 			if !forFSM.InInvalidState() {
 				s.AddFSM(&forFSM)
 				return finalState
 			}
 
 			nextFSM := NewNext()
-			nextFSM.ConsumeToken(t, s)
+			nextFSM.ConsumeToken(t, s, semantic)
 			if !nextFSM.InInvalidState() {
 				s.AddFSM(&nextFSM)
 				return finalState
 			}
 
 			dimFSM := NewDim()
-			dimFSM.ConsumeToken(t, s)
+			dimFSM.ConsumeToken(t, s, semantic)
 			if !dimFSM.InInvalidState() {
 				s.AddFSM(&dimFSM)
 				return finalState
 			}
 
 			defFSM := NewDef()
-			defFSM.ConsumeToken(t, s)
+			defFSM.ConsumeToken(t, s, semantic)
 			if !defFSM.InInvalidState() {
 				s.AddFSM(&defFSM)
 				return finalState
 			}
 
 			gosubFSM := NewGosub()
-			gosubFSM.ConsumeToken(t, s)
+			gosubFSM.ConsumeToken(t, s, semantic)
 			if !gosubFSM.InInvalidState() {
 				s.AddFSM(&gosubFSM)
 				return finalState
 			}
 
 			returnFSM := NewReturn()
-			returnFSM.ConsumeToken(t, s)
+			returnFSM.ConsumeToken(t, s, semantic)
 			if !returnFSM.InInvalidState() {
 				s.AddFSM(&returnFSM)
 				return finalState
@@ -134,7 +138,7 @@ func NewBStatement() bstatement {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Number {
 				return state1
 			}
@@ -155,25 +159,29 @@ func NewAssign() assignFSM {
 	assignFSM.name = "assign"
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
+			semantic.evaluate()
+			semantic.dataFloat[semantic.popString()] = semantic.popFloat()
+			fmt.Println(semantic)
 			return invalidState()
 		},
 		isFinal: true}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			e := NewExp()
-			e.ConsumeToken(t, s)
+			e.ConsumeToken(t, s, semantic)
 			if e.InInvalidState() {
 				return invalidState()
 			}
 			s.AddFSM(&e)
+
 			return state4
 		},
 		isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Equal {
 				return state3
 			}
@@ -181,9 +189,9 @@ func NewAssign() assignFSM {
 		}}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			v := NewVar()
-			v.ConsumeToken(t, s)
+			v.ConsumeToken(t, s, semantic)
 			if !v.InInvalidState() {
 				s.AddFSM(&v)
 			} else {
@@ -194,7 +202,7 @@ func NewAssign() assignFSM {
 		isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "LET" {
 				return state1
 			}
@@ -215,14 +223,15 @@ func NewVar() varFSM { //FIXME
 	varFSM.name = "var"
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier {
+				semantic.saveString(t.lexeme)
 				return state1
 			}
 			return invalidState()
@@ -240,15 +249,14 @@ type expFSM struct {
 func NewExp() expFSM {
 	expFSM := expFSM{}
 	expFSM.name = "exp"
-
 	state1 := State{
 		name:    "1",
 		isFinal: true}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			ebFSM := NewEB()
-			ebFSM.ConsumeToken(t, s)
+			ebFSM.ConsumeToken(t, s, semantic)
 			if ebFSM.GetCurrent().name != invalidState().name {
 				s.AddFSM(&ebFSM)
 				return state1
@@ -256,26 +264,29 @@ func NewExp() expFSM {
 			return invalidState()
 		}, isFinal: false}
 
-	state1.next = func(f *fsm, t Token, s *Stack) State {
+	state1.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		if t.tokenType == Plus || t.tokenType == Minus || t.tokenType == Star || t.tokenType == Slash {
+			semantic.expression += t.lexeme
 			return state2
 		}
+
 		return invalidState()
 	}
 
 	state0 := State{
 		name:    "0",
 		isFinal: false}
-	state0.next = func(f *fsm, t Token, s *Stack) State {
+	state0.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		if t.tokenType == Plus || t.tokenType == Minus {
 			return state0
 		}
 		ebFSM := NewEB()
-		ebFSM.ConsumeToken(t, s)
+		ebFSM.ConsumeToken(t, s, semantic)
 		if ebFSM.GetCurrent().name != invalidState().name {
 			s.AddFSM(&ebFSM)
 			return state1
 		}
+
 		return invalidState()
 	}
 	expFSM.initial = state0
@@ -292,13 +303,14 @@ func NewEB() ebFSM {
 	ebFSM.name = "eb"
 	state5 := State{
 		name: "5",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
+			semantic.expression += t.lexeme
 			if t.tokenType == RightParen {
 				return state5
 			}
@@ -307,9 +319,9 @@ func NewEB() ebFSM {
 		isFinal: false}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if expFSM.GetCurrent().name != invalidState().name {
 				s.AddFSM(&expFSM)
 			} else {
@@ -320,7 +332,8 @@ func NewEB() ebFSM {
 		isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
+			semantic.expression += t.lexeme
 			if t.tokenType == LeftParen {
 				return state3
 			}
@@ -329,7 +342,8 @@ func NewEB() ebFSM {
 		isFinal: false}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
+			semantic.expression += t.lexeme
 			if t.tokenType == Identifier {
 				return state2
 			}
@@ -338,14 +352,20 @@ func NewEB() ebFSM {
 		isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "FN" {
 				return state1
 			}
 			if t.tokenType == LeftParen {
+				semantic.expression += t.lexeme
 				return state3
 			}
-			if t.tokenType == Number || t.tokenType == Identifier {
+			if t.tokenType == Number {
+				semantic.expression += t.lexeme
+				return state5
+			}
+			if t.tokenType == Identifier {
+				semantic.expression += fmt.Sprintf("%f", semantic.dataFloat[t.lexeme])
 				return state5
 			}
 			return invalidState()
@@ -365,13 +385,13 @@ func NewPredef() predefFSM {
 	predefFSM.name = "predef"
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "SIN" { //FIXME
 				return state1
 			}
@@ -392,15 +412,15 @@ func NewRead() readFSM {
 	readFSM.name = "read"
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true} //FIXME
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			varFSM := NewVar()
-			varFSM.ConsumeToken(t, s)
+			varFSM.ConsumeToken(t, s, semantic)
 			if !varFSM.InInvalidState() {
 				s.AddFSM(&varFSM)
 				return state2
@@ -410,7 +430,7 @@ func NewRead() readFSM {
 		isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "READ" { //FIXME
 				return state1
 			}
@@ -431,15 +451,15 @@ func NewData() dataFSM {
 	dataFSM.name = "data"
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true} //FIXME
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			// varFSM := NewVar()
-			// varFSM.ConsumeToken(t, s)
+			// varFSM.ConsumeToken(t, s, semantic)
 			// if !varFSM.InInvalidState() {
 			// 	s.AddFSM(&varFSM)
 			// 	return state2
@@ -449,7 +469,7 @@ func NewData() dataFSM {
 		isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "DATA" { //FIXME
 				return state1
 			}
@@ -470,21 +490,21 @@ func NewPrint() printFSM {
 	printFSM.name = "print"
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			pitemFSM := NewPitem()
-			pitemFSM.ConsumeToken(t, s)
+			pitemFSM.ConsumeToken(t, s, semantic)
 			if !pitemFSM.InInvalidState() {
 				s.AddFSM(&pitemFSM)
 				return state1
@@ -494,19 +514,19 @@ func NewPrint() printFSM {
 		isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Comma {
 				return state3
 			}
 			return invalidState()
 		},
 		isFinal: false} //FIXME
-	state1.next = func(f *fsm, t Token, s *Stack) State {
+	state1.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		if t.tokenType == Comma {
 			return state4
 		}
 		pitemFSM := NewPitem()
-		pitemFSM.ConsumeToken(t, s)
+		pitemFSM.ConsumeToken(t, s, semantic)
 		if !pitemFSM.InInvalidState() {
 			s.AddFSM(&pitemFSM)
 			return state2
@@ -515,7 +535,7 @@ func NewPrint() printFSM {
 	}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.lexeme == "PRINT" { //FIXME
 				return state1
 			}
@@ -535,15 +555,15 @@ func NewPitem() pitemFSM {
 	pitemFSM := pitemFSM{}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				return state2
 			}
@@ -551,12 +571,12 @@ func NewPitem() pitemFSM {
 		}, isFinal: true}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == String {
 				return state1
 			}
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				return state2
 			}
@@ -576,13 +596,13 @@ func NewGoto() gotoFSM {
 	gotoFSM.name = "goto"
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Number {
 				return state2
 			}
@@ -590,7 +610,7 @@ func NewGoto() gotoFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == GoTo {
 				return state1
 			}
@@ -610,13 +630,13 @@ func NewIf() ifFSM {
 	ifFSM.name = "if"
 	state6 := State{
 		name: "6",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		},
 		isFinal: true}
 	state5 := State{
 		name: "5",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Number {
 				return state6
 			}
@@ -625,7 +645,7 @@ func NewIf() ifFSM {
 		isFinal: false}
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Then {
 				return state5
 			}
@@ -633,9 +653,9 @@ func NewIf() ifFSM {
 		}, isFinal: false}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -643,7 +663,7 @@ func NewIf() ifFSM {
 		}, isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Greater || t.tokenType == GreaterEqual ||
 				t.tokenType == Different || t.tokenType == Less ||
 				t.tokenType == LessEqual || t.tokenType == Equal {
@@ -653,9 +673,9 @@ func NewIf() ifFSM {
 		}, isFinal: false}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -663,7 +683,7 @@ func NewIf() ifFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == If {
 				return state1
 			}
@@ -683,14 +703,14 @@ func NewFor() forFSM {
 	forFSM.name = "for"
 	state8 := State{
 		name: "8",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		}, isFinal: true}
 	state7 := State{
 		name: "7",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -698,7 +718,7 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state6 := State{
 		name: "6",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Step {
 				return state7
 			}
@@ -707,9 +727,9 @@ func NewFor() forFSM {
 		isFinal: true}
 	state5 := State{
 		name: "5",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -717,7 +737,7 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == To {
 				return state5
 			}
@@ -725,9 +745,9 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -735,7 +755,7 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Equal {
 				return state3
 			}
@@ -743,7 +763,7 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier {
 				return state2
 			}
@@ -751,7 +771,7 @@ func NewFor() forFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == For {
 				return state1
 			}
@@ -771,12 +791,12 @@ func NewNext() nextFSM {
 	nextFSM.name = "next"
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		}, isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier {
 				return state2
 			}
@@ -784,7 +804,7 @@ func NewNext() nextFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Next {
 				return state1
 			}
@@ -808,7 +828,7 @@ func NewDim() dimFSM {
 		isFinal: false}
 	state6 := State{
 		name: "6",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Comma {
 				return state1
 			}
@@ -819,13 +839,13 @@ func NewDim() dimFSM {
 		isFinal: false}
 	state5 := State{
 		name: "5",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier {
 				return state4
 			}
 			return invalidState()
 		}, isFinal: false}
-	state4.next = func(f *fsm, t Token, s *Stack) State {
+	state4.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		if t.tokenType == Comma {
 			return state5
 		}
@@ -836,7 +856,7 @@ func NewDim() dimFSM {
 	}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Number {
 				return state4
 			}
@@ -844,13 +864,13 @@ func NewDim() dimFSM {
 		}, isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == LeftParen {
 				return state3
 			}
 			return invalidState()
 		}, isFinal: false}
-	state1.next = func(f *fsm, t Token, s *Stack) State {
+	state1.next = func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 		if t.tokenType == Identifier { //FIXME: tem que ser uma letra só
 			return state2
 		}
@@ -858,7 +878,7 @@ func NewDim() dimFSM {
 	}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Dim {
 				return state1
 			}
@@ -879,14 +899,14 @@ func NewDef() defFSM {
 	defFSM.name = "def"
 	state7 := State{
 		name: "7",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		}, isFinal: true}
 	state6 := State{
 		name: "6",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			expFSM := NewExp()
-			expFSM.ConsumeToken(t, s)
+			expFSM.ConsumeToken(t, s, semantic)
 			if !expFSM.InInvalidState() {
 				s.AddFSM(&expFSM)
 			}
@@ -894,7 +914,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state5 := State{
 		name: "5",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Equal {
 				return state6
 			}
@@ -902,7 +922,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state4 := State{
 		name: "4",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == RightParen {
 				return state5
 			}
@@ -910,7 +930,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state3 := State{
 		name: "3",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier {
 				return state4
 			}
@@ -918,7 +938,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == LeftParen {
 				return state3
 			}
@@ -926,7 +946,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Identifier { //fnf
 				return state2
 			}
@@ -934,7 +954,7 @@ func NewDef() defFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Def {
 				return state1
 			}
@@ -955,12 +975,12 @@ func NewGosub() gosubFSM {
 	gosubFSM.name = "gosub"
 	state2 := State{
 		name: "2",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		}, isFinal: true}
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Number {
 				return state2
 			}
@@ -968,7 +988,7 @@ func NewGosub() gosubFSM {
 		}, isFinal: false}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Gosub {
 				return state1
 			}
@@ -989,12 +1009,12 @@ func NewReturn() returnFSM {
 	returnFSM.name = "return"
 	state1 := State{
 		name: "1",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			return invalidState()
 		}, isFinal: true}
 	state0 := State{
 		name: "0",
-		next: func(f *fsm, t Token, s *Stack) State {
+		next: func(f *fsm, t Token, s *Stack, semantic *Semantic) State {
 			if t.tokenType == Return {
 				return state1
 			}

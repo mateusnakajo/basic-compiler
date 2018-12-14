@@ -2,7 +2,7 @@ package lexer
 
 type State struct {
 	name    string
-	next    func(*fsm, Token, *Stack) State
+	next    func(*fsm, Token, *Stack, *Semantic) State
 	isFinal bool
 }
 
@@ -11,21 +11,22 @@ func invalidState() State {
 }
 
 type fsmInterface interface {
-	ConsumeToken(Token, *Stack)
+	ConsumeToken(Token, *Stack, *Semantic)
 	GetCurrent() State
 	GetName() string
 	InInvalidState() bool
 }
 
 type fsm struct {
-	initial State
-	current State
-	name    string
+	initial  State
+	current  State
+	name     string
+	assembly AssemblyInterface
 }
 
-func (f *fsm) ConsumeToken(token Token, s *Stack) {
+func (f *fsm) ConsumeToken(token Token, s *Stack, semantic *Semantic) {
 	//fmt.Println("Antes", f.GetName(), f.GetCurrent().name, token)
-	f.current = f.current.next(f, token, s)
+	f.current = f.current.next(f, token, s, semantic)
 	//fmt.Println("Depois", f.GetName(), f.GetCurrent().name, token)
 }
 

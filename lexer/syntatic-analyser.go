@@ -8,11 +8,14 @@ type syntaticAnalyser struct {
 	EventDrivenModule
 	program  fsmInterface
 	fsmStack Stack
+	semantic Semantic
 }
 
 func NewSyntaticAnalyser() syntaticAnalyser {
 	syntaticAnalyser := syntaticAnalyser{}
 	program := NewProgram()
+	syntaticAnalyser.semantic = Semantic{}
+	syntaticAnalyser.semantic.dataFloat = make(map[string]float64)
 	syntaticAnalyser.fsmStack.AddFSM(&program)
 	return syntaticAnalyser
 }
@@ -33,11 +36,11 @@ func (s *syntaticAnalyser) ConsumeToken(token Token) {
 	}
 
 	if !s.fsmStack.TopFSM().InInvalidState() {
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.semantic)
 	}
 	for s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.PopFSM()
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.semantic)
 	}
 }
 
