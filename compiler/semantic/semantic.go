@@ -31,20 +31,24 @@ import (
 // }
 
 type Semantic struct {
+	TokenEvents []compiler.Event
+	IndexOfLine map[string]int
 	compiler.EventDrivenModule
-	strings    []string
-	DataFloat  map[string]float64
-	DataArray  map[string][]float64
+	strings   []string
+	DataFloat map[string]float64
+	DataArray map[string][]float64
+
 	accString  string
 	accFloat   float64
 	Expression string
 	identifier string
+	Rerun      bool
 }
 
 func NewSemantic() Semantic {
 	semantic := Semantic{}
+	semantic.Rerun = false
 	semantic.DataFloat = make(map[string]float64)
-
 	return semantic
 }
 
@@ -87,37 +91,48 @@ type AssemblyInterface interface {
 }
 
 func (s *Semantic) HandleEvent(event compiler.Event) {
-	handlers := map[string]func(string){
+	handlers := map[string]func(interface{}){
 		"addToExp":           s.addToExpHandler,
 		"addIdentifierToExp": s.addIdentifierToExpHandler,
 		"createNewAssign":    s.createNewAssignHandler,
 		"saveIdentifier":     s.saveIdentifier,
 		"print":              s.printHandler,
+		"goto":               s.gotoHandler,
 	}
 	handler := handlers[event.Name]
-	handler(event.Arg.(string))
+	handler(event.Arg)
 }
 
-func (s *Semantic) addToExpHandler(v string) {
-	s.Expression += v
+func (s *Semantic) addToExpHandler(v interface{}) {
+	s.Expression += v.(string)
 }
 
-func (s *Semantic) addIdentifierToExpHandler(v string) {
-	s.Expression += fmt.Sprintf("%f", s.DataFloat[v])
+func (s *Semantic) addIdentifierToExpHandler(v interface{}) {
+	s.Expression += fmt.Sprintf("%f", s.DataFloat[v.(string)])
 }
 
-func (s *Semantic) createNewAssignHandler(v string) {
+func (s *Semantic) createNewAssignHandler(v interface{}) {
 	s.DataFloat[s.identifier] = evaluate(s.Expression)
-	fmt.Println(s.DataFloat)
 	s.identifier = ""
 	s.Expression = ""
 }
 
-func (s *Semantic) saveIdentifier(identifier string) {
-	s.identifier = identifier
+func (s *Semantic) saveIdentifier(identifier interface{}) {
+	s.identifier = identifier.(string)
 }
 
-func (s *Semantic) printHandler(v string) {
+func (s *Semantic) printHandler(v interface{}) {
 	fmt.Println(s.Expression)
 	s.Expression = ""
+}
+
+func (s *Semantic) gotoHandler(v interface{}) {
+	//supondo que está em cima
+	start := s.IndexOfLine[v.(string)]
+	s.TokenEvents = s.TokenEvents[start:len(s.TokenEvents)]
+	s.Rerun = true
+	fmt.Println(s.TokenEvents)
+	for !s.IsEmpty() {
+		_ = s.PopEvent()
+	}
 }

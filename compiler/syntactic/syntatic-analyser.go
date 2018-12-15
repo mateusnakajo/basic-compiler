@@ -9,12 +9,18 @@ import (
 
 type syntaticAnalyser struct {
 	compiler.EventDrivenModule
-	program  fsmInterface
-	fsmStack Stack
+	program         fsmInterface
+	fsmStack        Stack
+	IndexOfLine     map[string]int
+	numberOfNewLine string
+	numberOfTokens  int
 }
 
 func NewSyntaticAnalyser() syntaticAnalyser {
 	syntaticAnalyser := syntaticAnalyser{}
+	syntaticAnalyser.IndexOfLine = make(map[string]int)
+	syntaticAnalyser.numberOfTokens = 0
+	syntaticAnalyser.numberOfNewLine = ""
 	program := NewProgram()
 	syntaticAnalyser.fsmStack.AddFSM(&program)
 	return syntaticAnalyser
@@ -28,18 +34,22 @@ func (s *syntaticAnalyser) HandleEvent(event compiler.Event) {
 }
 
 func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
-
+	if s.numberOfNewLine != "" {
+		s.IndexOfLine[s.numberOfNewLine] = s.numberOfTokens - 1
+		s.numberOfNewLine = ""
+	}
+	s.numberOfTokens++
 	if false {
 		fmt.Println("\n")
 		fmt.Println(token)
 		s.fsmStack.PrintStack()
 	}
 	if !s.fsmStack.TopFSM().InInvalidState() {
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, s.AddExternal)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.numberOfNewLine, s.AddExternal)
 	}
 	for s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.PopFSM()
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, s.AddExternal)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.numberOfNewLine, s.AddExternal)
 	}
 }
 
@@ -68,6 +78,6 @@ func (s Stack) IsEmpty() bool {
 
 func (s Stack) PrintStack() {
 	for i := range s.fsm {
-		fmt.Println("FSM:", s.fsm[i].GetName(), "Estado:", s.fsm[i].GetCurrent())
+		fmt.Println("FSM:", s.fsm[i], "Estado:", s.fsm[i].GetCurrent())
 	}
 }

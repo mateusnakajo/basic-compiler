@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -31,6 +32,7 @@ func main() { /*
 	a.AddExternal = t.AddEvent
 	t.AddExternal = s.AddEvent
 	s.AddExternal = semantic.AddEvent
+	semantic.AddExternal = s.AddEvent
 
 	for !f.IsEmpty() {
 		event := f.PopEvent()
@@ -44,14 +46,30 @@ func main() { /*
 		event := t.PopEvent()
 		t.HandleEvent(event)
 	}
+	semantic.TokenEvents = s.Events
 	for !s.IsEmpty() {
 		event := s.PopEvent()
 		s.HandleEvent(event)
 	}
+	semantic.IndexOfLine = s.IndexOfLine
 	for !semantic.IsEmpty() {
 		event := semantic.PopEvent()
 		semantic.HandleEvent(event)
 	}
+	if semantic.Rerun {
+		semantic.Rerun = false
+		s.Events = semantic.TokenEvents
+		for !s.IsEmpty() {
+			fmt.Println("OI")
+			event := s.PopEvent()
+			s.HandleEvent(event)
+		}
+		for !semantic.IsEmpty() {
+			event := semantic.PopEvent()
+			semantic.HandleEvent(event)
+		}
+	}
+	// fmt.Println(semantic.TokenEvents)
 
 	//s := lexer.NewSyntaticAnalyser()
 	//s.HandleEvent(lexer.Event{"consumeToken", lexer.Token{}})

@@ -8,7 +8,7 @@ import (
 
 type State struct {
 	name    string
-	next    func(*fsm, lexer.Token, *Stack, func(compiler.Event)) State
+	next    func(*fsm, lexer.Token, *Stack, *string, func(compiler.Event)) State
 	isFinal bool
 }
 
@@ -17,7 +17,7 @@ func invalidState() State {
 }
 
 type fsmInterface interface {
-	ConsumeToken(lexer.Token, *Stack, func(compiler.Event))
+	ConsumeToken(lexer.Token, *Stack, *string, func(compiler.Event))
 	GetCurrent() State
 	GetName() string
 	InInvalidState() bool
@@ -30,9 +30,13 @@ type fsm struct {
 	assembly semantic.AssemblyInterface
 }
 
-func (f *fsm) ConsumeToken(token lexer.Token, s *Stack, external func(compiler.Event)) {
+func (f *fsm) ConsumeToken(
+	token lexer.Token,
+	s *Stack,
+	numberOfNewLine *string,
+	external func(compiler.Event)) {
 	//fmt.Println("Antes", f.GetName(), f.GetCurrent().name, token)
-	f.current = f.current.next(f, token, s, external)
+	f.current = f.current.next(f, token, s, numberOfNewLine, external)
 	//fmt.Println("Depois", f.GetName(), f.GetCurrent().name, token)
 }
 
