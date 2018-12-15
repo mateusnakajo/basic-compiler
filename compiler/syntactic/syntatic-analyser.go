@@ -5,21 +5,17 @@ import (
 
 	compiler "github.com/mateusnakajo/basic-compiler/compiler"
 	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
-	semantic "github.com/mateusnakajo/basic-compiler/compiler/semantic"
 )
 
 type syntaticAnalyser struct {
 	compiler.EventDrivenModule
 	program  fsmInterface
 	fsmStack Stack
-	semantic semantic.Semantic
 }
 
 func NewSyntaticAnalyser() syntaticAnalyser {
 	syntaticAnalyser := syntaticAnalyser{}
 	program := NewProgram()
-	syntaticAnalyser.semantic = semantic.Semantic{}
-	syntaticAnalyser.semantic.DataFloat = make(map[string]float64)
 	syntaticAnalyser.fsmStack.AddFSM(&program)
 	return syntaticAnalyser
 }
@@ -38,13 +34,12 @@ func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
 		fmt.Println(token)
 		s.fsmStack.PrintStack()
 	}
-	s.AddExternal(compiler.Event{"test", "oila"})
 	if !s.fsmStack.TopFSM().InInvalidState() {
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.semantic)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, s.AddExternal)
 	}
 	for s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.PopFSM()
-		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.semantic)
+		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, s.AddExternal)
 	}
 }
 

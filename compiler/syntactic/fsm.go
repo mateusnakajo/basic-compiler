@@ -1,13 +1,14 @@
 package syntactic
 
 import (
+	compiler "github.com/mateusnakajo/basic-compiler/compiler"
 	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
 	semantic "github.com/mateusnakajo/basic-compiler/compiler/semantic"
 )
 
 type State struct {
 	name    string
-	next    func(*fsm, lexer.Token, *Stack, *semantic.Semantic) State
+	next    func(*fsm, lexer.Token, *Stack, func(compiler.Event)) State
 	isFinal bool
 }
 
@@ -16,7 +17,7 @@ func invalidState() State {
 }
 
 type fsmInterface interface {
-	ConsumeToken(lexer.Token, *Stack, *semantic.Semantic)
+	ConsumeToken(lexer.Token, *Stack, func(compiler.Event))
 	GetCurrent() State
 	GetName() string
 	InInvalidState() bool
@@ -29,9 +30,9 @@ type fsm struct {
 	assembly semantic.AssemblyInterface
 }
 
-func (f *fsm) ConsumeToken(token lexer.Token, s *Stack, semantic *semantic.Semantic) {
+func (f *fsm) ConsumeToken(token lexer.Token, s *Stack, external func(compiler.Event)) {
 	//fmt.Println("Antes", f.GetName(), f.GetCurrent().name, token)
-	f.current = f.current.next(f, token, s, semantic)
+	f.current = f.current.next(f, token, s, external)
 	//fmt.Println("Depois", f.GetName(), f.GetCurrent().name, token)
 }
 

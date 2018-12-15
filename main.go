@@ -25,7 +25,7 @@ func main() { /*
 	a := lexer.AsciiCategorizer{}
 	t := lexer.TokenCategorizer{}
 	s := syntactic.NewSyntaticAnalyser()
-	semantic := semantic.Semantic{}
+	semantic := semantic.NewSemantic()
 	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/quicksort.bas"})
 	f.AddExternal = a.AddEvent
 	a.AddExternal = t.AddEvent
