@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -19,7 +18,7 @@ func main() {
 	t := lexer.TokenCategorizer{}
 	s := syntactic.NewSyntaticAnalyser()
 	semantic := semantic.NewSemantic()
-	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/test-array.bas"})
+	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/fibonacci.bas"})
 	//f.AddEvent(compiler.Event{Name: "open", Arg: args[0]})
 	f.AddExternal = a.AddEvent
 	a.AddExternal = t.AddEvent
@@ -47,8 +46,8 @@ func main() {
 	semantic.IndexOfLine = s.IndexOfLine
 	for !semantic.IsEmpty() {
 		event := semantic.PopEvent()
+		//fmt.Print(event)
 		semantic.HandleEvent(event)
-		fmt.Print(event)
 	}
 	for semantic.Rerun {
 		semantic.Rerun = false
@@ -64,7 +63,7 @@ func main() {
 			//fmt.Print(event)
 		}
 	}
-	// fmt.Println(semantic.TokenEvents)
+	//fmt.Println(semantic.TokenEvents)
 
 	//s := lexer.NewSyntaticAnalyser()
 	//s.HandleEvent(lexer.Event{"consumeToken", lexer.Token{}})

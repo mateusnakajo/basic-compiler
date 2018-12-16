@@ -87,6 +87,7 @@ type Semantic struct {
 	forIdentifiers  []ForVariables
 	varToAssign     string
 	arrayToAssign   ArrayIdentifier
+	identifierSaved string
 }
 
 func NewSemantic() Semantic {
@@ -225,7 +226,9 @@ func (s *Semantic) ifComparatorHandler(v interface{}) {
 }
 
 func (s *Semantic) forAssignHandler(v interface{}) {
-
+	for len(s.identifiers.identifier) > 1 {
+		s.identifiers.Pop()
+	}
 	if _, ok := s.DataFloat[s.identifiers.Top()]; !ok {
 		s.DataFloat[s.identifiers.Top()] = evaluate(s.Expression)
 		s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifiers.Pop(), 0, 1, v.(string)})
@@ -257,10 +260,11 @@ func (s *Semantic) endForHandler(v interface{}) {
 }
 
 func (s *Semantic) saveArrayIdentifierHandler(identifier interface{}) {
+	if s.identifierSaved != s.identifiers.Top() {
+		s.identifiers.Pop()
+	}
 	s.arrayIdentifier = ArrayIdentifier{s.identifiers.Pop(), int(evaluate(s.Expression))}
-	fmt.Println("EXP", s.Expression)
 	s.Expression = s.ExpressionSaved + fmt.Sprintf("%f", s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index])
-	fmt.Println("EXP", s.Expression)
 }
 
 func (s *Semantic) defineArrayHandler(v interface{}) {
@@ -270,6 +274,7 @@ func (s *Semantic) defineArrayHandler(v interface{}) {
 func (s *Semantic) defineArrayIndexHandler(v interface{}) {
 	s.arrayIdentifier.index, _ = strconv.Atoi(v.(string))
 	s.DataArray[s.arrayIdentifier.name] = make([]float64, s.arrayIdentifier.index, s.arrayIdentifier.index)
+	s.arrayIdentifier = ArrayIdentifier{}
 }
 
 func (s *Semantic) varToAssignHandler(v interface{}) {
@@ -287,6 +292,7 @@ func (s *Semantic) beginExpressionHandler(v interface{}) {
 
 func (s *Semantic) saveExpressionHandler(v interface{}) {
 	s.ExpressionSaved = s.Expression
+	s.identifierSaved = s.identifiers.Top()
 }
 
 //TODO: zerar exp na começar exp

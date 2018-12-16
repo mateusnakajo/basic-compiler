@@ -3,7 +3,6 @@ package syntactic
 import (
 	compiler "github.com/mateusnakajo/basic-compiler/compiler"
 	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
-	semantic "github.com/mateusnakajo/basic-compiler/compiler/semantic"
 )
 
 type State struct {
@@ -24,10 +23,9 @@ type fsmInterface interface {
 }
 
 type fsm struct {
-	initial  State
-	current  State
-	name     string
-	assembly semantic.AssemblyInterface
+	initial State
+	current State
+	name    string
 }
 
 func (f *fsm) ConsumeToken(
@@ -35,9 +33,7 @@ func (f *fsm) ConsumeToken(
 	s *Stack,
 	numberOfNewLine *string,
 	external func(compiler.Event)) {
-	//fmt.Println("Antes", f.GetName(), f.GetCurrent().name, token)
 	f.current = f.current.next(f, token, s, numberOfNewLine, external)
-	//fmt.Println("Depois", f.GetName(), f.GetCurrent().name, token)
 }
 
 func (f fsm) GetCurrent() State {

@@ -1,0 +1,3 @@
+1 FOR I = 0 TO 30
+2 PRINT I
+3 NEXT I
