@@ -30,6 +30,12 @@ import (
 // 		ret`, f.name)
 // }
 
+type ForVariables struct {
+	identifier string
+	limit      float64
+	step       float64
+}
+
 type Semantic struct {
 	TokenEvents []compiler.Event
 	IndexOfLine map[string]int
@@ -38,11 +44,13 @@ type Semantic struct {
 	DataFloat map[string]float64
 	DataArray map[string][]float64
 
-	accString  string
-	accFloat   float64
-	Expression string
-	identifier string
-	Rerun      bool
+	accString      string
+	accFloat       float64
+	Expression     string
+	IfExpression   string
+	identifier     string
+	Rerun          bool
+	forIdentifiers []ForVariables
 }
 
 func NewSemantic() Semantic {
@@ -78,6 +86,12 @@ func evaluate(expression string) float64 {
 	return temp.(float64)
 }
 
+func evaluateBoolean(expression string) bool {
+	eval, _ := govaluate.NewEvaluableExpression(expression)
+	temp, _ := eval.Evaluate(nil)
+	return temp.(bool)
+}
+
 type ExpressionAssembly struct {
 	assembly string
 }
@@ -98,6 +112,12 @@ func (s *Semantic) HandleEvent(event compiler.Event) {
 		"saveIdentifier":     s.saveIdentifier,
 		"print":              s.printHandler,
 		"goto":               s.gotoHandler,
+		"ifExp":              s.ifExpHandler,
+		"evaluateIf":         s.evaluateIfHandler,
+		"ifComparator":       s.ifComparatorHandler,
+		"forAssign":          s.forAssignHandler,
+		"forLimit":           s.forLimitHandler,
+		"stepFor":            s.stepForHandler,
 	}
 	handler := handlers[event.Name]
 	handler(event.Arg)
@@ -127,12 +147,45 @@ func (s *Semantic) printHandler(v interface{}) {
 }
 
 func (s *Semantic) gotoHandler(v interface{}) {
-	//supondo que está em cima
 	start := s.IndexOfLine[v.(string)]
 	s.TokenEvents = s.TokenEvents[start:len(s.TokenEvents)]
 	s.Rerun = true
-	fmt.Println(s.TokenEvents)
 	for !s.IsEmpty() {
 		_ = s.PopEvent()
 	}
+}
+
+func (s *Semantic) ifExpHandler(v interface{}) {
+	s.IfExpression += s.Expression
+	s.Expression = ""
+	fmt.Println("DEBUG:", s.IfExpression)
+}
+
+func (s *Semantic) evaluateIfHandler(v interface{}) {
+	evalIf := evaluateBoolean(s.IfExpression)
+	fmt.Println(evalIf)
+	if evalIf {
+		s.gotoHandler(v)
+	}
+}
+
+func (s *Semantic) ifComparatorHandler(v interface{}) {
+	s.IfExpression += v.(string)
+}
+
+func (s *Semantic) forAssignHandler(v interface{}) {
+	s.DataFloat[s.identifier] = evaluate(s.Expression)
+	s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifier, 0, 0})
+	s.identifier = ""
+	s.Expression = ""
+}
+
+func (s *Semantic) forLimitHandler(v interface{}) {
+	s.forIdentifiers[len(s.forIdentifiers)-1].limit = evaluate(s.Expression)
+	s.Expression = ""
+}
+
+func (s *Semantic) stepForHandler(v interface{}) {
+	s.forIdentifiers[len(s.forIdentifiers)-1].step = evaluate(s.Expression)
+	s.Expression = ""
 }

@@ -655,6 +655,7 @@ func NewIf() ifFSM {
 		name: "5",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 			if t.TokenType == lexer.Number {
+				external(compiler.Event{"evaluateIf", t.Lexeme})
 				return state6
 			}
 			return invalidState()
@@ -663,6 +664,7 @@ func NewIf() ifFSM {
 	state4 := State{
 		name: "4",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"ifExp", ""})
 			if t.TokenType == lexer.Then {
 				return state5
 			}
@@ -681,9 +683,12 @@ func NewIf() ifFSM {
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"ifExp", ""})
+
 			if t.TokenType == lexer.Greater || t.TokenType == lexer.GreaterEqual ||
 				t.TokenType == lexer.Different || t.TokenType == lexer.Less ||
 				t.TokenType == lexer.LessEqual || t.TokenType == lexer.Equal {
+				external(compiler.Event{"ifComparator", t.Lexeme})
 				return state3
 			}
 			return invalidState()
@@ -721,6 +726,7 @@ func NewFor() forFSM {
 	state8 := State{
 		name: "8",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"stepFor", ""})
 			return invalidState()
 		}, isFinal: true}
 	state7 := State{
@@ -736,6 +742,7 @@ func NewFor() forFSM {
 	state6 := State{
 		name: "6",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"forLimit", ""})
 			if t.TokenType == lexer.Step {
 				return state7
 			}
@@ -755,6 +762,7 @@ func NewFor() forFSM {
 	state4 := State{
 		name: "4",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"forAssign", ""})
 			if t.TokenType == lexer.To {
 				return state5
 			}
@@ -782,6 +790,7 @@ func NewFor() forFSM {
 		name: "1",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 			if t.TokenType == lexer.Identifier {
+				external(compiler.Event{"saveIdentifier", t.Lexeme})
 				return state2
 			}
 			return invalidState()

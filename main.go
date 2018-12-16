@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -60,7 +59,6 @@ func main() { /*
 		semantic.Rerun = false
 		s.Events = semantic.TokenEvents
 		for !s.IsEmpty() {
-			fmt.Println("OI")
 			event := s.PopEvent()
 			s.HandleEvent(event)
 		}
