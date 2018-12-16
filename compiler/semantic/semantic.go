@@ -61,6 +61,8 @@ type Semantic struct {
 	arrayIdentifier ArrayIdentifier
 	Rerun           bool
 	forIdentifiers  []ForVariables
+	varToAssign     string
+	arrayToAssign   ArrayIdentifier
 }
 
 func NewSemantic() Semantic {
@@ -133,6 +135,8 @@ func (s *Semantic) HandleEvent(event compiler.Event) {
 		"saveArrayIdentifier": s.saveArrayIdentifierHandler,
 		"defineArray":         s.defineArrayHandler,
 		"defineArrayIndex":    s.defineArrayIndexHandler,
+		"varToAssign":         s.varToAssignHandler,
+		"beginExpression":     s.beginExpressionHandler,
 	}
 	handler := handlers[event.Name]
 	handler(event.Arg)
@@ -143,7 +147,7 @@ func (s *Semantic) addToExpHandler(v interface{}) {
 }
 
 func (s *Semantic) addIdentifierToExpHandler(v interface{}) {
-	s.Expression += fmt.Sprintf("%f", s.DataFloat[v.(string)])
+	s.Expression += fmt.Sprintf("%f", s.DataFloat[s.identifier])
 }
 
 func (s *Semantic) addArrayIdentifierToExpHandler(v interface{}) { //FIXME
@@ -151,13 +155,14 @@ func (s *Semantic) addArrayIdentifierToExpHandler(v interface{}) { //FIXME
 }
 
 func (s *Semantic) createNewAssignHandler(v interface{}) {
-	fmt.Println("IDENT", s.identifier)
-	if s.arrayIdentifier != (ArrayIdentifier{}) {
-		s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index] = evaluate(s.Expression)
-		s.arrayIdentifier = ArrayIdentifier{}
-	} else {
-		s.DataFloat[s.identifier] = evaluate(s.Expression)
-	}
+	s.DataFloat[s.varToAssign] = evaluate(s.Expression)
+
+	// if s.arrayIdentifier != (ArrayIdentifier{}) {
+	// 	s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index] = evaluate(s.Expression)
+	// 	s.arrayIdentifier = ArrayIdentifier{}
+	// } else {
+	// 	s.DataFloat[s.identifier] = evaluate(s.Expression)
+	// }
 	s.Expression = ""
 }
 
@@ -245,3 +250,20 @@ func (s *Semantic) defineArrayIndexHandler(v interface{}) {
 	s.arrayIdentifier.index, _ = strconv.Atoi(v.(string))
 	s.DataArray[s.arrayIdentifier.name] = make([]float64, s.arrayIdentifier.index, s.arrayIdentifier.index)
 }
+
+func (s *Semantic) varToAssignHandler(v interface{}) {
+	if s.arrayIdentifier != (ArrayIdentifier{}) {
+		s.arrayToAssign = s.arrayIdentifier
+		s.arrayIdentifier = ArrayIdentifier{}
+	} else {
+		s.varToAssign = s.identifier
+		s.identifier = ""
+	}
+}
+
+func (s *Semantic) beginExpressionHandler(v interface{}) {
+	s.Expression = ""
+	s.identifier = ""
+}
+
+//TODO: zerar exp na começar exp

@@ -1,5 +1,4 @@
-1 DIM K(10)
-5 LET K(1) = 1 + 3
-9 LET B = 0
-10 LET A = B
-15 END
+4 LET B = 2
+5 LET B = B * B
+6 PRINT B
+7 END

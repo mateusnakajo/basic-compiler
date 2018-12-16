@@ -39,17 +39,17 @@ func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
 	}
 
 	s.numberOfTokens++
-	if false {
-		fmt.Println("\n")
-		fmt.Println(token)
-		s.fsmStack.PrintStack()
-	}
 	if !s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.numberOfNewLine, s.AddExternal)
 	}
 	for s.fsmStack.TopFSM().InInvalidState() {
 		s.fsmStack.PopFSM()
 		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.numberOfNewLine, s.AddExternal)
+	}
+	if true {
+		fmt.Println("\n")
+		fmt.Println(token)
+		s.fsmStack.PrintStack()
 	}
 }
 

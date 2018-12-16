@@ -176,18 +176,18 @@ func NewAssign() assignFSM {
 		name: "3",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 			e := NewExp()
+			s.AddFSM(&e)
 			e.ConsumeToken(t, s, numberOfNewLine, external)
 			if e.InInvalidState() {
 				return invalidState()
 			}
-			s.AddFSM(&e)
-
 			return state4
 		},
 		isFinal: false}
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"varToAssign", ""})
 			if t.TokenType == lexer.Equal {
 				return state3
 			}
@@ -262,6 +262,7 @@ func NewVar() varFSM { //FIXME
 			if t.TokenType == lexer.LeftParen {
 				return state2
 			}
+			external(compiler.Event{"addIdentifierToExp", ""})
 			return invalidState()
 		},
 		isFinal: true}
@@ -282,7 +283,6 @@ func NewVar() varFSM { //FIXME
 
 type expFSM struct {
 	fsm
-	ebFSM ebFSM
 }
 
 func NewExp() expFSM {
@@ -317,13 +317,14 @@ func NewExp() expFSM {
 		name:    "0",
 		isFinal: false}
 	state0.next = func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+		external(compiler.Event{"beginExpression", ""})
 		if t.TokenType == lexer.Plus || t.TokenType == lexer.Minus {
 			return state0
 		}
-		expFSM.ebFSM = NewEB()
-		expFSM.ebFSM.ConsumeToken(t, s, numberOfNewLine, external)
-		if expFSM.ebFSM.GetCurrent().name != invalidState().name {
-			s.AddFSM(&expFSM.ebFSM)
+		ebFSM := NewEB()
+		s.AddFSM(&ebFSM)
+		ebFSM.ConsumeToken(t, s, numberOfNewLine, external)
+		if ebFSM.GetCurrent().name != invalidState().name {
 			return state1
 		}
 
