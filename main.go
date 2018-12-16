@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 
@@ -10,23 +11,16 @@ import (
 	syntactic "github.com/mateusnakajo/basic-compiler/compiler/syntactic"
 )
 
-func main() { /*
-		args := os.Args[1:]
-		switch {
-		case len(args) > 1:
-			fmt.Println("Usage: basic [script]")
-		case len(args) == 1:
-			lexer.RunLexer(readFile(args[0]))
-		case len(args) == 0:
-			fmt.Println(">>")
-		}*/
+func main() {
+	//args := os.Args[1:]
 
 	f := lexer.FileReader{}
 	a := lexer.AsciiCategorizer{}
 	t := lexer.TokenCategorizer{}
 	s := syntactic.NewSyntaticAnalyser()
 	semantic := semantic.NewSemantic()
-	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/quicksort.bas"})
+	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/test-array.bas"})
+	//f.AddEvent(compiler.Event{Name: "open", Arg: args[0]})
 	f.AddExternal = a.AddEvent
 	a.AddExternal = t.AddEvent
 	t.AddExternal = s.AddEvent
@@ -54,6 +48,7 @@ func main() { /*
 	for !semantic.IsEmpty() {
 		event := semantic.PopEvent()
 		semantic.HandleEvent(event)
+		fmt.Print(event)
 	}
 	for semantic.Rerun {
 		semantic.Rerun = false
@@ -66,6 +61,7 @@ func main() { /*
 		for !semantic.IsEmpty() {
 			event := semantic.PopEvent()
 			semantic.HandleEvent(event)
+			//fmt.Print(event)
 		}
 	}
 	// fmt.Println(semantic.TokenEvents)

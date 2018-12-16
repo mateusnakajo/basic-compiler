@@ -31,6 +31,29 @@ import (
 // 		ret`, f.name)
 // }
 
+type StackIdentifier struct {
+	identifier []string
+}
+
+func (s *StackIdentifier) Add(i string) {
+	s.identifier = append(s.identifier, i)
+}
+
+func (s *StackIdentifier) Pop() string {
+	lastIndex := len(s.identifier) - 1
+	last := s.identifier[lastIndex]
+	s.identifier = s.identifier[0:lastIndex]
+	return last
+}
+
+func (s *StackIdentifier) Top() string {
+	return s.identifier[len(s.identifier)-1]
+}
+
+func (s StackIdentifier) IsEmpty() bool {
+	return len(s.identifier) == 0
+}
+
 type ForVariables struct {
 	identifier string
 	limit      float64
@@ -57,7 +80,7 @@ type Semantic struct {
 	accFloat        float64
 	Expression      string
 	IfExpression    string
-	identifier      string
+	identifiers     StackIdentifier
 	arrayIdentifier ArrayIdentifier
 	Rerun           bool
 	forIdentifiers  []ForVariables
@@ -122,7 +145,7 @@ func (s *Semantic) HandleEvent(event compiler.Event) {
 		"addToExp":            s.addToExpHandler,
 		"addIdentifierToExp":  s.addIdentifierToExpHandler,
 		"createNewAssign":     s.createNewAssignHandler,
-		"saveIdentifier":      s.saveIdentifier,
+		"saveIdentifier":      s.saveIdentifierHandler,
 		"print":               s.printHandler,
 		"goto":                s.gotoHandler,
 		"ifExp":               s.ifExpHandler,
@@ -147,7 +170,7 @@ func (s *Semantic) addToExpHandler(v interface{}) {
 }
 
 func (s *Semantic) addIdentifierToExpHandler(v interface{}) {
-	s.Expression += fmt.Sprintf("%f", s.DataFloat[s.identifier])
+	s.Expression += fmt.Sprintf("%f", s.DataFloat[s.identifiers.Top()])
 }
 
 func (s *Semantic) addArrayIdentifierToExpHandler(v interface{}) { //FIXME
@@ -155,19 +178,17 @@ func (s *Semantic) addArrayIdentifierToExpHandler(v interface{}) { //FIXME
 }
 
 func (s *Semantic) createNewAssignHandler(v interface{}) {
-	s.DataFloat[s.varToAssign] = evaluate(s.Expression)
-
-	// if s.arrayIdentifier != (ArrayIdentifier{}) {
-	// 	s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index] = evaluate(s.Expression)
-	// 	s.arrayIdentifier = ArrayIdentifier{}
-	// } else {
-	// 	s.DataFloat[s.identifier] = evaluate(s.Expression)
-	// }
+	if s.arrayToAssign != (ArrayIdentifier{}) {
+		s.DataArray[s.arrayToAssign.name][s.arrayToAssign.index] = evaluate(s.Expression)
+		s.arrayToAssign = ArrayIdentifier{}
+	} else {
+		s.DataFloat[s.varToAssign] = evaluate(s.Expression)
+	}
 	s.Expression = ""
 }
 
-func (s *Semantic) saveIdentifier(identifier interface{}) {
-	s.identifier = identifier.(string)
+func (s *Semantic) saveIdentifierHandler(identifier interface{}) {
+	s.identifiers.Add(identifier.(string))
 }
 
 func (s *Semantic) printHandler(v interface{}) {
@@ -187,7 +208,6 @@ func (s *Semantic) gotoHandler(v interface{}) {
 func (s *Semantic) ifExpHandler(v interface{}) {
 	s.IfExpression += s.Expression
 	s.Expression = ""
-	fmt.Println("DEBUG:", s.IfExpression)
 }
 
 func (s *Semantic) evaluateIfHandler(v interface{}) {
@@ -203,12 +223,11 @@ func (s *Semantic) ifComparatorHandler(v interface{}) {
 }
 
 func (s *Semantic) forAssignHandler(v interface{}) {
-	if _, ok := s.DataFloat[s.identifier]; !ok {
-		s.DataFloat[s.identifier] = evaluate(s.Expression)
-		s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifier, 0, 0, v.(string)})
+
+	if _, ok := s.DataFloat[s.identifiers.Top()]; !ok {
+		s.DataFloat[s.identifiers.Top()] = evaluate(s.Expression)
+		s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifiers.Pop(), 0, 1, v.(string)})
 	}
-	s.identifier = ""
-	s.Expression = ""
 }
 
 func (s *Semantic) forLimitHandler(v interface{}) {
@@ -226,7 +245,6 @@ func (s *Semantic) endForHandler(v interface{}) {
 	forStep := s.forIdentifiers[len(s.forIdentifiers)-1].step
 	forLimit := s.forIdentifiers[len(s.forIdentifiers)-1].limit
 	forLine := s.forIdentifiers[len(s.forIdentifiers)-1].line
-
 	s.DataFloat[forIdentifier] += forStep
 	if s.DataFloat[forIdentifier] <= forLimit {
 		s.gotoHandler(forLine)
@@ -237,9 +255,10 @@ func (s *Semantic) endForHandler(v interface{}) {
 }
 
 func (s *Semantic) saveArrayIdentifierHandler(identifier interface{}) {
-	s.arrayIdentifier = ArrayIdentifier{s.identifier, int(evaluate(s.Expression))}
-	s.identifier = ""
-	s.Expression = ""
+	s.arrayIdentifier = ArrayIdentifier{s.identifiers.Pop(), int(evaluate(s.Expression))}
+	fmt.Println("EXP", s.Expression)
+	s.Expression += fmt.Sprintf("%f", s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index])
+	fmt.Println("EXP", s.Expression)
 }
 
 func (s *Semantic) defineArrayHandler(v interface{}) {
@@ -256,14 +275,12 @@ func (s *Semantic) varToAssignHandler(v interface{}) {
 		s.arrayToAssign = s.arrayIdentifier
 		s.arrayIdentifier = ArrayIdentifier{}
 	} else {
-		s.varToAssign = s.identifier
-		s.identifier = ""
+		s.varToAssign = s.identifiers.Pop()
 	}
 }
 
 func (s *Semantic) beginExpressionHandler(v interface{}) {
 	s.Expression = ""
-	s.identifier = ""
 }
 
 //TODO: zerar exp na começar exp
