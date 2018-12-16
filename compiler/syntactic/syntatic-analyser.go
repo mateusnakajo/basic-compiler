@@ -78,6 +78,6 @@ func (s Stack) IsEmpty() bool {
 
 func (s Stack) PrintStack() {
 	for i := range s.fsm {
-		fmt.Println("FSM:", s.fsm[i], "Estado:", s.fsm[i].GetCurrent())
+		fmt.Println("FSM:", s.fsm[i].GetName(), "Estado:", s.fsm[i].GetCurrent())
 	}
 }

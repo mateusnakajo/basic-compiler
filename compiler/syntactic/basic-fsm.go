@@ -227,9 +227,41 @@ type varFSM struct {
 func NewVar() varFSM { //FIXME
 	varFSM := varFSM{}
 	varFSM.name = "var"
+	state4 := State{
+		name: "4",
+		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			return invalidState()
+		},
+		isFinal: true}
+	state3 := State{
+		name: "3",
+		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			if t.TokenType == lexer.RightParen {
+				external(compiler.Event{"saveArrayIdentifier", ""})
+				return state4
+			}
+			return invalidState()
+		},
+		isFinal: false}
+	state2 := State{
+		name: "2",
+		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			expFSM := NewExp()
+			expFSM.ConsumeToken(t, s, numberOfNewLine, external)
+			if expFSM.GetCurrent().name != invalidState().name {
+				s.AddFSM(&expFSM)
+			} else {
+				return invalidState()
+			}
+			return state3
+		},
+		isFinal: false}
 	state1 := State{
 		name: "1",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			if t.TokenType == lexer.LeftParen {
+				return state2
+			}
 			return invalidState()
 		},
 		isFinal: true}
@@ -364,6 +396,12 @@ func NewEB() ebFSM {
 	state0 := State{
 		name: "0",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			varFSM := NewVar()
+			varFSM.ConsumeToken(t, s, numberOfNewLine, external)
+			if !varFSM.InInvalidState() {
+				s.AddFSM(&varFSM)
+				return state5
+			}
 			if t.Lexeme == "FN" {
 				return state1
 			}
@@ -377,11 +415,6 @@ func NewEB() ebFSM {
 				//semantic.Expression += t.Lexeme
 				return state5
 
-			}
-			if t.TokenType == lexer.Identifier {
-				external(compiler.Event{"addIdentifierToExp", t.Lexeme})
-				//semantic.Expression += fmt.Sprintf("%f", semantic.DataFloat[t.Lexeme])
-				return state5
 			}
 			return invalidState()
 		},
@@ -885,6 +918,7 @@ func NewDim() dimFSM {
 		name: "3",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 			if t.TokenType == lexer.Number {
+				external(compiler.Event{"defineArrayIndex", t.Lexeme})
 				return state4
 			}
 			return invalidState()
@@ -899,6 +933,7 @@ func NewDim() dimFSM {
 		}, isFinal: false}
 	state1.next = func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 		if t.TokenType == lexer.Identifier { //FIXME: tem que ser uma letra só
+			external(compiler.Event{"defineArray", t.Lexeme})
 			return state2
 		}
 		return invalidState()

@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/Knetic/govaluate"
 	"github.com/mateusnakajo/basic-compiler/compiler"
@@ -37,6 +38,11 @@ type ForVariables struct {
 	line       string
 }
 
+type ArrayIdentifier struct {
+	name  string
+	index int
+}
+
 type Semantic struct {
 	TokenEvents    []compiler.Event
 	NewTokenEvents []compiler.Event
@@ -47,19 +53,21 @@ type Semantic struct {
 	DataFloat map[string]float64
 	DataArray map[string][]float64
 
-	accString      string
-	accFloat       float64
-	Expression     string
-	IfExpression   string
-	identifier     string
-	Rerun          bool
-	forIdentifiers []ForVariables
+	accString       string
+	accFloat        float64
+	Expression      string
+	IfExpression    string
+	identifier      string
+	arrayIdentifier ArrayIdentifier
+	Rerun           bool
+	forIdentifiers  []ForVariables
 }
 
 func NewSemantic() Semantic {
 	semantic := Semantic{}
 	semantic.Rerun = false
 	semantic.DataFloat = make(map[string]float64)
+	semantic.DataArray = make(map[string][]float64)
 	return semantic
 }
 
@@ -109,19 +117,22 @@ type AssemblyInterface interface {
 
 func (s *Semantic) HandleEvent(event compiler.Event) {
 	handlers := map[string]func(interface{}){
-		"addToExp":           s.addToExpHandler,
-		"addIdentifierToExp": s.addIdentifierToExpHandler,
-		"createNewAssign":    s.createNewAssignHandler,
-		"saveIdentifier":     s.saveIdentifier,
-		"print":              s.printHandler,
-		"goto":               s.gotoHandler,
-		"ifExp":              s.ifExpHandler,
-		"evaluateIf":         s.evaluateIfHandler,
-		"ifComparator":       s.ifComparatorHandler,
-		"forAssign":          s.forAssignHandler,
-		"forLimit":           s.forLimitHandler,
-		"stepFor":            s.stepForHandler,
-		"endFor":             s.endForHandler,
+		"addToExp":            s.addToExpHandler,
+		"addIdentifierToExp":  s.addIdentifierToExpHandler,
+		"createNewAssign":     s.createNewAssignHandler,
+		"saveIdentifier":      s.saveIdentifier,
+		"print":               s.printHandler,
+		"goto":                s.gotoHandler,
+		"ifExp":               s.ifExpHandler,
+		"evaluateIf":          s.evaluateIfHandler,
+		"ifComparator":        s.ifComparatorHandler,
+		"forAssign":           s.forAssignHandler,
+		"forLimit":            s.forLimitHandler,
+		"stepFor":             s.stepForHandler,
+		"endFor":              s.endForHandler,
+		"saveArrayIdentifier": s.saveArrayIdentifierHandler,
+		"defineArray":         s.defineArrayHandler,
+		"defineArrayIndex":    s.defineArrayIndexHandler,
 	}
 	handler := handlers[event.Name]
 	handler(event.Arg)
@@ -135,9 +146,18 @@ func (s *Semantic) addIdentifierToExpHandler(v interface{}) {
 	s.Expression += fmt.Sprintf("%f", s.DataFloat[v.(string)])
 }
 
+func (s *Semantic) addArrayIdentifierToExpHandler(v interface{}) { //FIXME
+	s.Expression += fmt.Sprintf("%f", s.DataFloat[v.(string)])
+}
+
 func (s *Semantic) createNewAssignHandler(v interface{}) {
-	s.DataFloat[s.identifier] = evaluate(s.Expression)
-	s.identifier = ""
+	fmt.Println("IDENT", s.identifier)
+	if s.arrayIdentifier != (ArrayIdentifier{}) {
+		s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index] = evaluate(s.Expression)
+		s.arrayIdentifier = ArrayIdentifier{}
+	} else {
+		s.DataFloat[s.identifier] = evaluate(s.Expression)
+	}
 	s.Expression = ""
 }
 
@@ -167,6 +187,7 @@ func (s *Semantic) ifExpHandler(v interface{}) {
 
 func (s *Semantic) evaluateIfHandler(v interface{}) {
 	evalIf := evaluateBoolean(s.IfExpression)
+	s.IfExpression = ""
 	if evalIf {
 		s.gotoHandler(v)
 	}
@@ -208,4 +229,19 @@ func (s *Semantic) endForHandler(v interface{}) {
 		delete(s.DataFloat, forIdentifier)
 		s.forIdentifiers = s.forIdentifiers[:len(s.forIdentifiers)-1]
 	}
+}
+
+func (s *Semantic) saveArrayIdentifierHandler(identifier interface{}) {
+	s.arrayIdentifier = ArrayIdentifier{s.identifier, int(evaluate(s.Expression))}
+	s.identifier = ""
+	s.Expression = ""
+}
+
+func (s *Semantic) defineArrayHandler(v interface{}) {
+	s.arrayIdentifier = ArrayIdentifier{v.(string), 0}
+}
+
+func (s *Semantic) defineArrayIndexHandler(v interface{}) {
+	s.arrayIdentifier.index, _ = strconv.Atoi(v.(string))
+	s.DataArray[s.arrayIdentifier.name] = make([]float64, s.arrayIdentifier.index, s.arrayIdentifier.index)
 }
