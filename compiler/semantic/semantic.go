@@ -34,10 +34,13 @@ type ForVariables struct {
 	identifier string
 	limit      float64
 	step       float64
+	line       string
 }
 
 type Semantic struct {
-	TokenEvents []compiler.Event
+	TokenEvents    []compiler.Event
+	NewTokenEvents []compiler.Event
+
 	IndexOfLine map[string]int
 	compiler.EventDrivenModule
 	strings   []string
@@ -118,6 +121,7 @@ func (s *Semantic) HandleEvent(event compiler.Event) {
 		"forAssign":          s.forAssignHandler,
 		"forLimit":           s.forLimitHandler,
 		"stepFor":            s.stepForHandler,
+		"endFor":             s.endForHandler,
 	}
 	handler := handlers[event.Name]
 	handler(event.Arg)
@@ -148,7 +152,7 @@ func (s *Semantic) printHandler(v interface{}) {
 
 func (s *Semantic) gotoHandler(v interface{}) {
 	start := s.IndexOfLine[v.(string)]
-	s.TokenEvents = s.TokenEvents[start:len(s.TokenEvents)]
+	s.NewTokenEvents = s.TokenEvents[start:len(s.TokenEvents)]
 	s.Rerun = true
 	for !s.IsEmpty() {
 		_ = s.PopEvent()
@@ -163,7 +167,6 @@ func (s *Semantic) ifExpHandler(v interface{}) {
 
 func (s *Semantic) evaluateIfHandler(v interface{}) {
 	evalIf := evaluateBoolean(s.IfExpression)
-	fmt.Println(evalIf)
 	if evalIf {
 		s.gotoHandler(v)
 	}
@@ -174,8 +177,10 @@ func (s *Semantic) ifComparatorHandler(v interface{}) {
 }
 
 func (s *Semantic) forAssignHandler(v interface{}) {
-	s.DataFloat[s.identifier] = evaluate(s.Expression)
-	s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifier, 0, 0})
+	if _, ok := s.DataFloat[s.identifier]; !ok {
+		s.DataFloat[s.identifier] = evaluate(s.Expression)
+		s.forIdentifiers = append(s.forIdentifiers, ForVariables{s.identifier, 0, 0, v.(string)})
+	}
 	s.identifier = ""
 	s.Expression = ""
 }
@@ -188,4 +193,19 @@ func (s *Semantic) forLimitHandler(v interface{}) {
 func (s *Semantic) stepForHandler(v interface{}) {
 	s.forIdentifiers[len(s.forIdentifiers)-1].step = evaluate(s.Expression)
 	s.Expression = ""
+}
+
+func (s *Semantic) endForHandler(v interface{}) {
+	forIdentifier := s.forIdentifiers[len(s.forIdentifiers)-1].identifier
+	forStep := s.forIdentifiers[len(s.forIdentifiers)-1].step
+	forLimit := s.forIdentifiers[len(s.forIdentifiers)-1].limit
+	forLine := s.forIdentifiers[len(s.forIdentifiers)-1].line
+
+	s.DataFloat[forIdentifier] += forStep
+	if s.DataFloat[forIdentifier] <= forLimit {
+		s.gotoHandler(forLine)
+	} else {
+		delete(s.DataFloat, forIdentifier)
+		s.forIdentifiers = s.forIdentifiers[:len(s.forIdentifiers)-1]
+	}
 }

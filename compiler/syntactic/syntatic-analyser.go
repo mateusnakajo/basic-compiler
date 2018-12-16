@@ -34,10 +34,10 @@ func (s *syntaticAnalyser) HandleEvent(event compiler.Event) {
 }
 
 func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
-	if s.numberOfNewLine != "" {
+	if _, ok := s.IndexOfLine[s.numberOfNewLine]; !ok {
 		s.IndexOfLine[s.numberOfNewLine] = s.numberOfTokens - 1
-		s.numberOfNewLine = ""
 	}
+
 	s.numberOfTokens++
 	if false {
 		fmt.Println("\n")

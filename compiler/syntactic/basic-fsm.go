@@ -762,7 +762,7 @@ func NewFor() forFSM {
 	state4 := State{
 		name: "4",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
-			external(compiler.Event{"forAssign", ""})
+			external(compiler.Event{"forAssign", *numberOfNewLine})
 			if t.TokenType == lexer.To {
 				return state5
 			}
@@ -824,6 +824,7 @@ func NewNext() nextFSM {
 		name: "1",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 			if t.TokenType == lexer.Identifier {
+				external(compiler.Event{"endFor", ""})
 				return state2
 			}
 			return invalidState()

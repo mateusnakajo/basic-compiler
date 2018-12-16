@@ -55,9 +55,10 @@ func main() { /*
 		event := semantic.PopEvent()
 		semantic.HandleEvent(event)
 	}
-	if semantic.Rerun {
+	for semantic.Rerun {
 		semantic.Rerun = false
-		s.Events = semantic.TokenEvents
+		s.Events = semantic.NewTokenEvents
+
 		for !s.IsEmpty() {
 			event := s.PopEvent()
 			s.HandleEvent(event)
