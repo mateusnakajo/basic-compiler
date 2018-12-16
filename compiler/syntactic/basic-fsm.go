@@ -246,6 +246,7 @@ func NewVar() varFSM { //FIXME
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
+			external(compiler.Event{"saveExpression", ""})
 			expFSM := NewExp()
 			expFSM.ConsumeToken(t, s, numberOfNewLine, external)
 			if expFSM.GetCurrent().name != invalidState().name {

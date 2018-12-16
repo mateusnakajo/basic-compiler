@@ -79,6 +79,7 @@ type Semantic struct {
 	accString       string
 	accFloat        float64
 	Expression      string
+	ExpressionSaved string
 	IfExpression    string
 	identifiers     StackIdentifier
 	arrayIdentifier ArrayIdentifier
@@ -160,6 +161,7 @@ func (s *Semantic) HandleEvent(event compiler.Event) {
 		"defineArrayIndex":    s.defineArrayIndexHandler,
 		"varToAssign":         s.varToAssignHandler,
 		"beginExpression":     s.beginExpressionHandler,
+		"saveExpression":      s.saveExpressionHandler,
 	}
 	handler := handlers[event.Name]
 	handler(event.Arg)
@@ -257,7 +259,7 @@ func (s *Semantic) endForHandler(v interface{}) {
 func (s *Semantic) saveArrayIdentifierHandler(identifier interface{}) {
 	s.arrayIdentifier = ArrayIdentifier{s.identifiers.Pop(), int(evaluate(s.Expression))}
 	fmt.Println("EXP", s.Expression)
-	s.Expression += fmt.Sprintf("%f", s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index])
+	s.Expression = s.ExpressionSaved + fmt.Sprintf("%f", s.DataArray[s.arrayIdentifier.name][s.arrayIdentifier.index])
 	fmt.Println("EXP", s.Expression)
 }
 
@@ -281,6 +283,10 @@ func (s *Semantic) varToAssignHandler(v interface{}) {
 
 func (s *Semantic) beginExpressionHandler(v interface{}) {
 	s.Expression = ""
+}
+
+func (s *Semantic) saveExpressionHandler(v interface{}) {
+	s.ExpressionSaved = s.Expression
 }
 
 //TODO: zerar exp na começar exp
