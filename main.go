@@ -1,9 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/mateusnakajo/basic-compiler/compiler"
 	lexer "github.com/mateusnakajo/basic-compiler/compiler/lexer"
@@ -12,21 +12,19 @@ import (
 )
 
 func main() {
-	//args := os.Args[1:]
+	args := os.Args[1:]
 
 	f := lexer.FileReader{}
 	a := lexer.AsciiCategorizer{}
 	t := lexer.TokenCategorizer{}
 	s := syntactic.NewSyntaticAnalyser()
 	semantic := semantic.NewSemantic()
-	f.AddEvent(compiler.Event{Name: "open", Arg: "sample-program/quicksort.bas"})
-	//f.AddEvent(compiler.Event{Name: "open", Arg: args[0]})
+	f.AddEvent(compiler.Event{Name: "open", Arg: args[0]})
 	f.AddExternal = a.AddEvent
 	a.AddExternal = t.AddEvent
 	t.AddExternal = s.AddEvent
 	s.AddExternal = semantic.AddEvent
 	semantic.AddExternal = s.AddEvent
-
 	for !f.IsEmpty() {
 		event := f.PopEvent()
 		f.HandleEvent(event)
@@ -40,6 +38,7 @@ func main() {
 		t.HandleEvent(event)
 	}
 	semantic.TokenEvents = s.Events
+
 	for !s.IsEmpty() {
 		event := s.PopEvent()
 		s.HandleEvent(event)
@@ -47,7 +46,6 @@ func main() {
 	semantic.IndexOfLine = s.IndexOfLine
 	for !semantic.IsEmpty() {
 		event := semantic.PopEvent()
-		fmt.Print(event)
 		semantic.HandleEvent(event)
 	}
 	for semantic.Rerun {
@@ -61,13 +59,8 @@ func main() {
 		for !semantic.IsEmpty() {
 			event := semantic.PopEvent()
 			semantic.HandleEvent(event)
-			fmt.Print(event)
 		}
 	}
-	//fmt.Println(semantic.TokenEvents)
-
-	//s := lexer.NewSyntaticAnalyser()
-	//s.HandleEvent(lexer.Event{"consumeToken", lexer.Token{}})
 }
 
 func readFile(filename string) string {

@@ -46,7 +46,7 @@ func (s *syntaticAnalyser) ConsumeToken(token lexer.Token) {
 		s.fsmStack.PopFSM()
 		s.fsmStack.TopFSM().ConsumeToken(token, &s.fsmStack, &s.numberOfNewLine, s.AddExternal)
 	}
-	if true {
+	if false {
 		fmt.Println("\n")
 		fmt.Println(token)
 		s.fsmStack.PrintStack()

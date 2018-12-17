@@ -307,7 +307,6 @@ func NewExp() expFSM {
 
 	state1.next = func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
 		if t.TokenType == lexer.Plus || t.TokenType == lexer.Minus || t.TokenType == lexer.Star || t.TokenType == lexer.Slash {
-			//semantic.Expression += t.Lexeme
 			external(compiler.Event{"addToExp", t.Lexeme})
 			return state2
 		}
@@ -352,7 +351,6 @@ func NewEB() ebFSM {
 	state4 := State{
 		name: "4",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
-			//semantic.Expression += t.Lexeme
 			external(compiler.Event{"addToExp", t.Lexeme})
 			if t.TokenType == lexer.RightParen {
 				return state5
@@ -376,7 +374,6 @@ func NewEB() ebFSM {
 	state2 := State{
 		name: "2",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
-			//semantic.Expression += t.Lexeme
 			external(compiler.Event{"addToExp", t.Lexeme})
 			if t.TokenType == lexer.LeftParen {
 				return state3
@@ -387,7 +384,6 @@ func NewEB() ebFSM {
 	state1 := State{
 		name: "1",
 		next: func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
-			//semantic.Expression += t.Lexeme
 			external(compiler.Event{"addToExp", t.Lexeme})
 			if t.TokenType == lexer.Identifier {
 				return state2
@@ -409,12 +405,10 @@ func NewEB() ebFSM {
 			}
 			if t.TokenType == lexer.LeftParen {
 				external(compiler.Event{"addToExp", t.Lexeme})
-				//semantic.Expression += t.Lexeme
 				return state3
 			}
 			if t.TokenType == lexer.Number {
 				external(compiler.Event{"addToExp", t.Lexeme})
-				//semantic.Expression += t.Lexeme
 				return state5
 
 			}
@@ -934,7 +928,7 @@ func NewDim() dimFSM {
 			return invalidState()
 		}, isFinal: false}
 	state1.next = func(f *fsm, t lexer.Token, s *Stack, numberOfNewLine *string, external func(compiler.Event)) State {
-		if t.TokenType == lexer.Identifier { //FIXME: tem que ser uma letra só
+		if t.TokenType == lexer.Identifier {
 			external(compiler.Event{"defineArray", t.Lexeme})
 			return state2
 		}

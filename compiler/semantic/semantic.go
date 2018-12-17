@@ -8,29 +8,6 @@ import (
 	"github.com/mateusnakajo/basic-compiler/compiler"
 )
 
-// type Semantic struct {
-// 	functions []Function
-// }
-
-// type Function struct {
-// 	assembly    string
-// 	returnvalue Expression
-// 	name        string
-// }
-
-// type Expression struct {
-// 	assembly string
-// }
-
-// func (f *Function) generateFunction() {
-// 	f.assembly = fmt.Sprintf(`%v:
-// 		pushq	%%rbp
-// 		movq	%%rsp, %%rbp
-// 		movl	$1, %%eax
-// 		popq	%%rbp
-// 		ret`, f.name)
-// }
-
 type StackIdentifier struct {
 	identifier []string
 }
@@ -294,5 +271,3 @@ func (s *Semantic) saveExpressionHandler(v interface{}) {
 	s.ExpressionSaved = s.Expression
 	s.identifierSaved = s.identifiers.Top()
 }
-
-//TODO: zerar exp na começar exp
